@@ -1,0 +1,9 @@
+<RCC>
+  <qresource prefix="/MainWindow">
+    <file>picture/background.jpg</file>
+    <file>picture/AI.png</file>
+    <file>picture/exit.png</file>
+    <file>picture/player.png</file>
+    <file>picture/QtGobang.png</file>
+  </qresource>
+</RCC>
