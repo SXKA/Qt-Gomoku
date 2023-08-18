@@ -9,4 +9,4 @@ Algorithm reference to https://github.com/kimlongli/FiveChess
 ## Homepage
 ![image](https://github.com/SXKA/Qt-gobang/blob/master/Qt-gobang/picture/MainWindow.png)
 ## Game UI
-![image](https://github.com/SXKA/Qt-gobang/blob/master/Qt-gobang/picture/GameWindow.png)
+<div align=center><img src=https://github.com/SXKA/Qt-gobang/blob/master/Qt-gobang/picture/GameWindow.png></div>
