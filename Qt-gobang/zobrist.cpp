@@ -31,7 +31,7 @@ void Zobrist::insert(const unsigned long long &hashKey, const type &type, const 
 {
     auto &entry = hashTable[hashKey & (hashTable.size() - 1)];
 
-    if (entry.type == type::empty && entry.depth <= depth) {
+    if (entry.type == empty && entry.depth <= depth) {
         entry.checkSum = hashKey;
         entry.type = type;
         entry.depth = depth;
@@ -43,7 +43,7 @@ bool Zobrist::contains(const unsigned long long &hashKey, const int &depth) cons
 {
     auto &entry = hashTable[hashKey & (hashTable.size() - 1)];
 
-    return entry.type != type::empty && entry.checkSum == hashKey && entry.depth >= depth;
+    return entry.type != empty && entry.checkSum == hashKey && entry.depth >= depth;
 }
 
 unsigned long long Zobrist::hash() const

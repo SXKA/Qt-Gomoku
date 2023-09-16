@@ -1,13 +1,15 @@
 #pragma once
 
 #include "zobrist.h"
+#include <algorithm>
 #include <array>
-#include <set>
+#include <functional>
 #include <unordered_map>
 #include <QMessageBox>
 #include <QPoint>
 #include <QSet>
 #include <QStack>
+#include <QVector>
 
 #ifdef emit
 #undef emit

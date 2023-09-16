@@ -11,6 +11,11 @@ const std::unordered_map<std::string, score> Gobang::shapeScoreMap = {
     {"11111", five}
 };
 
+inline bool operator< (const QPoint& lhs, const QPoint& rhs)
+{
+	return lhs.y() == rhs.y() ? lhs.x() < rhs.y() : rhs.y() < lhs.y();
+}
+
 Gobang::Gobang()
 {
     vacancies = QSet<QPoint>();
@@ -30,6 +35,8 @@ Gobang::Gobang()
             board[i][j] = empty;
         }
     }
+
+    trie.only_whole_words();
 
     for (const auto &shapeScore : shapeScoreMap) {
         trie.insert(shapeScore.first);
@@ -113,9 +120,9 @@ stone Gobang::checkStone(const QPoint &point) const
 
 state Gobang::gameState(const QPoint &point, const stone &stone) const
 {
-    const std::array<int, 2> d = {-1, 1};
-    const std::array<int, 4> dx = {1, 0, 1, 1};
-    const std::array<int, 4> dy = {0, 1, 1, -1};
+    constexpr std::array<int, 2> d = {-1, 1};
+    constexpr std::array<int, 4> dx = {1, 0, 1, 1};
+    constexpr std::array<int, 4> dy = {0, 1, 1, -1};
 
     for (int i = 0; i < 4; ++i) {
         int count = 1;
@@ -199,9 +206,9 @@ void Gobang::updateScore(const QPoint &point)
         insertToLine(2, QPoint(i, j));
     }
 
-    base = std::min(x, 14 - y);
+    base = std::min(y, 14 - x);
 
-    for (int i = x - base, j = y + base; i < 15 && j >= 0; ++i, --j) {
+    for (int i = x + base, j = y - base; i >= 0 && j < 15; --i, ++j) {
         insertToLine(3, QPoint(i, j));
     }
 
@@ -212,13 +219,13 @@ void Gobang::updateScore(const QPoint &point)
         auto shapes = trie.parse_text(blackLines[i]);
 
         for (const auto &shape : shapes) {
-            blackLineScores[i] += static_cast<int>(shapeScoreMap.at(shape.get_keyword()));
+            blackLineScores[i] += shapeScoreMap.at(shape.get_keyword());
         }
 
         shapes = trie.parse_text(whiteLines[i]);
 
         for (const auto &shape : shapes) {
-            whiteLineScores[i] += static_cast<int>(shapeScoreMap.at(shape.get_keyword()));
+            whiteLineScores[i] += shapeScoreMap.at(shape.get_keyword());
         }
     }
 
@@ -235,9 +242,9 @@ void Gobang::updateScore(const QPoint &point)
     update(y, blackLineScores[0], whiteLineScores[0]);
     update(offsetIndex, blackLineScores[1], whiteLineScores[1]);
 
-    offsetIndex = x - y + 40;
+    offsetIndex = y - x + 40;
 
-    if (std::abs(x - y) <= 10) {
+    if (std::abs(y - x) <= 10) {
         update(offsetIndex, blackLineScores[2], whiteLineScores[2]);
     }
 
@@ -269,8 +276,8 @@ int Gobang::alphaBetaPrune(const stone &stone, const int &depth, int alpha, cons
         const auto entry = zobrist.at(zobrist.hash());
 
         switch (entry.type) {
-        case zobrist::type::empty:
-            qDebug() << "Hash error!";
+        case zobrist::empty:
+            qDebug() << "Hashing error!";
 
             break;
         case zobrist::exact:
@@ -302,33 +309,30 @@ int Gobang::alphaBetaPrune(const stone &stone, const int &depth, int alpha, cons
     }
 
     if (!depth) {
-        zobrist.insert(zobrist.hash(), zobrist::exact, depth, firstScore - secondScore);
+        const auto score = static_cast<int>(firstScore - 1.25 * secondScore);
 
-        return firstScore - secondScore;
+        zobrist.insert(zobrist.hash(), zobrist::exact, depth, score);
+
+        return score;
     }
 
-    const auto scoreGreater = [](const auto & a, const auto & b) {
-        return a.second != b.second
-               ? a.second > b.second
-               : a.first.x() != b.first.x()
-               ? a.first.x() < b.first.x()
-               : a.first.y() < b.first.y();
-    };
-
-    std::set<std::pair<QPoint, int>, decltype(scoreGreater)> candidates(scoreGreater);
+    QVector<std::pair<int, QPoint>> candidates;
 
     for (const auto &vacancy : vacancies) {
-        if (isIsolated(vacancy)) {
-            continue;
+        if (!isIsolated(vacancy)) {
+            candidates.emplace_back(calculateScore(vacancy), vacancy);
         }
-
-        candidates.emplace(vacancy, calculateScore(vacancy));
     }
 
-    int limit = 8 - (maxDepth - depth);
+    std::sort(candidates.begin(), candidates.end(), std::greater<>());
+
+    if (const int limit = 10 - (maxDepth - depth); candidates.size() > limit) {
+	    candidates.resize(limit);
+    } 
+
     auto valueType = zobrist::upperBound;
 
-    for (const auto& [candidate, score] : candidates) {
+    for (const auto& [score, candidate] : candidates) {
         play(candidate, stone);
 
         const auto vacancyScore = -alphaBetaPrune(static_cast<const gobang::stone>(!stone), depth - 1,
@@ -337,7 +341,7 @@ int Gobang::alphaBetaPrune(const stone &stone, const int &depth, int alpha, cons
         back(1);
 
         if (vacancyScore >= beta) {
-            zobrist.insert(zobrist.hash(), zobrist::lowerBound, depth, vacancyScore);
+            zobrist.insert(zobrist.hash(), zobrist::lowerBound, depth, beta);
 
             return beta;
         }
@@ -351,10 +355,6 @@ int Gobang::alphaBetaPrune(const stone &stone, const int &depth, int alpha, cons
 
             valueType = zobrist::exact;
         }
-
-        if (--limit < 0) {
-            break;
-        }
     }
 
     zobrist.insert(zobrist.hash(), valueType, depth, alpha);
@@ -365,8 +365,8 @@ int Gobang::alphaBetaPrune(const stone &stone, const int &depth, int alpha, cons
 int Gobang::calculateScore(const QPoint &point)
 {
     int score = 0;
-    const std::array<int, 4> dx = {1, 0, 1, 1};
-    const std::array<int, 4> dy = {0, 1, 1, -1};
+    constexpr std::array<int, 4> dx = {1, 0, 1, 1};
+    constexpr std::array<int, 4> dy = {0, 1, 1, -1};
 
     for (int i = 0; i < 4; ++i) {
         score += dScore(point, dx[i], dy[i]);
@@ -414,17 +414,23 @@ int Gobang::dScore(const QPoint &point, const int &dx, const int &dy)
         }
     }
 
+    int maxScore = 0;
     auto shapes = trie.parse_text(blackLine);
 
     for (const auto &shape : shapes) {
-        score += static_cast<int>(shapeScoreMap.at(shape.get_keyword()));
+        maxScore = std::max(maxScore, static_cast<int>(shapeScoreMap.at(shape.get_keyword())));
     }
 
+    score += maxScore;
+
+    maxScore = 0;
     shapes = trie.parse_text(whiteLine);
 
     for (const auto &shape : shapes) {
-        score += static_cast<int>(shapeScoreMap.at(shape.get_keyword()));
+    	maxScore = std::max(maxScore, static_cast<int>(shapeScoreMap.at(shape.get_keyword())));
     }
+
+    score += maxScore;
 
     return score;
 }
