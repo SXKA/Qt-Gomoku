@@ -22,7 +22,7 @@ Zobrist::Zobrist(const int &size)
         }
     }
 
-    hashTable = std::vector<hashEntry>(size);
+    hashTable = QVarLengthArray<hashEntry>(size);
     boardHash = distribution(engine);
 }
 

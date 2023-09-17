@@ -2,7 +2,10 @@
 
 using namespace gobang;
 
-const std::unordered_map<std::string, score> Gobang::shapeScoreMap = {
+QCache<std::string, int> Gobang::largeCache = QCache<std::string, int>(16777216);
+QCache<std::string, int> Gobang::smallCache = QCache<std::string, int>(65536);
+
+const QHash<std::string, score> Gobang::shapeScoreHash = {
     {"001000", one}, {"000100", one},
     {"010100", two}, {"001010", two}, {"001100", two},
     {"011100", three}, {"001110", three}, {"010110", three}, {"011010", three},
@@ -13,19 +16,19 @@ const std::unordered_map<std::string, score> Gobang::shapeScoreMap = {
 
 inline bool operator< (const QPoint& lhs, const QPoint& rhs)
 {
-	return lhs.y() == rhs.y() ? lhs.x() < rhs.y() : rhs.y() < lhs.y();
+	return lhs.y() == rhs.y() ? lhs.x() < rhs.x() : rhs.y() < lhs.y();
 }
 
 Gobang::Gobang()
 {
+    trie = aho_corasick::trie();
+    zobrist = zobrist::Zobrist(1048576);
     vacancies = QSet<QPoint>();
     record = QStack<QPoint>();
     bestPoint = QPoint();
-    zobrist = zobrist::Zobrist();
-    trie = aho_corasick::trie();
-    board = std::array<std::array<stone, 15>, 15> {};
-    blackScores = std::array<int, 72> {};
-    whiteScores = std::array<int, 72> {};
+    board = std::array<std::array<stone, 15>, 15>();
+    blackScores = std::array<int, 72>();
+    whiteScores = std::array<int, 72>();
     blackTotalScore = 0;
     whiteTotalScore = 0;
 
@@ -38,18 +41,14 @@ Gobang::Gobang()
 
     trie.only_whole_words();
 
-    for (const auto &shapeScore : shapeScoreMap) {
-        trie.insert(shapeScore.first);
+    for (const auto &shapeScore : shapeScoreHash.keys()) {
+        trie.insert(shapeScore);
     }
 }
 
 bool Gobang::isLegal(const QPoint &point)
 {
-    if (point.x() >= 0 && point.x() < 15 && point.y() >= 0 && point.y() < 15) {
-        return true;
-    }
-
-    return false;
+    return point.x() >= 0 && point.x() < 15 && point.y() >= 0 && point.y() < 15;
 }
 
 void Gobang::back(const int &step)
@@ -159,7 +158,7 @@ QPoint Gobang::ai(const stone &stone)
 {
     const auto score = alphaBetaPrune(stone, maxDepth);
 
-    qDebug() << "Score: " << score;
+    qInfo() << "Score: " << score;
 
     return bestPoint;
 }
@@ -216,16 +215,44 @@ void Gobang::updateScore(const QPoint &point)
     std::array<int, 4> whiteLineScores{};
 
     for (int i = 0; i < 4; ++i) {
-        auto shapes = trie.parse_text(blackLines[i]);
-
-        for (const auto &shape : shapes) {
-            blackLineScores[i] += shapeScoreMap.at(shape.get_keyword());
+        if (blackLines[i].size() < 15) {
+	        blackLines[i].append(15 - blackLines[i].size(), ' ');
         }
 
-        shapes = trie.parse_text(whiteLines[i]);
+        if (whiteLines[i].size() < 15) {
+	        whiteLines[i].append(15 - whiteLines[i].size(), ' ');
+        }
 
-        for (const auto &shape : shapes) {
-            whiteLineScores[i] += shapeScoreMap.at(shape.get_keyword());
+        if (const auto cacheScore = largeCache[blackLines[i]]) {
+	        blackLineScores[i] += *cacheScore;
+        }
+        else {
+            auto *accumulateScore = new int(blackLineScores[i]);
+    		const auto shapes = trie.parse_text(blackLines[i]);
+
+			for (const auto &shape : shapes) {
+	    		blackLineScores[i] += shapeScoreHash[shape.get_keyword()];
+			}
+
+            *accumulateScore = blackLineScores[i] - *accumulateScore;
+
+            largeCache.insert(blackLines[i], accumulateScore);
+        }
+
+        if (const auto cacheScore = largeCache[whiteLines[i]]) {
+	        whiteLineScores[i] += *cacheScore;
+        }
+        else {
+            auto *accumulateScore = new int(whiteLineScores[i]);
+		    const auto shapes = trie.parse_text(whiteLines[i]);
+
+    		for (const auto &shape : shapes) {
+    			whiteLineScores[i] += shapeScoreHash[shape.get_keyword()];
+    		}
+
+            *accumulateScore = whiteLineScores[i] - *accumulateScore;
+
+            largeCache.insert(whiteLines[i], accumulateScore);
         }
     }
 
@@ -273,11 +300,11 @@ bool Gobang::isIsolated(const QPoint &point) const
 int Gobang::alphaBetaPrune(const stone &stone, const int &depth, int alpha, const int &beta)
 {
     if (depth != maxDepth && zobrist.contains(zobrist.hash(), depth)) {
-        const auto entry = zobrist.at(zobrist.hash());
+        const auto &entry = zobrist.at(zobrist.hash());
 
         switch (entry.type) {
         case zobrist::empty:
-            qDebug() << "Hashing error!";
+            qWarning() << "Hashing error!";
 
             break;
         case zobrist::exact:
@@ -297,8 +324,8 @@ int Gobang::alphaBetaPrune(const stone &stone, const int &depth, int alpha, cons
         }
     }
 
-    const auto firstScore = evaluate(stone);
-    const auto secondScore = evaluate(static_cast<const gobang::stone>(!stone));
+    const auto &firstScore = evaluate(stone);
+    const auto &secondScore = evaluate(static_cast<const gobang::stone>(!stone));
 
     if (firstScore >= five) {
         return maxScore - 1000 - (maxDepth - depth);
@@ -308,15 +335,15 @@ int Gobang::alphaBetaPrune(const stone &stone, const int &depth, int alpha, cons
         return minScore + 1000 + (maxDepth - depth);
     }
 
-    if (!depth) {
-        const auto score = static_cast<int>(firstScore - 1.25 * secondScore);
+    if (!depth || vacancies.empty()) {
+        const auto score = firstScore - secondScore;
 
         zobrist.insert(zobrist.hash(), zobrist::exact, depth, score);
 
         return score;
     }
 
-    QVector<std::pair<int, QPoint>> candidates;
+    QVector<QPair<int, QPoint>> candidates;
 
     for (const auto &vacancy : vacancies) {
         if (!isIsolated(vacancy)) {
@@ -326,7 +353,7 @@ int Gobang::alphaBetaPrune(const stone &stone, const int &depth, int alpha, cons
 
     std::sort(candidates.begin(), candidates.end(), std::greater<>());
 
-    if (const int limit = 10 - (maxDepth - depth); candidates.size() > limit) {
+    if (const int limit = 12 - (((maxDepth - depth) >> 1) << 1); candidates.size() > limit) {
 	    candidates.resize(limit);
     } 
 
@@ -385,6 +412,9 @@ int Gobang::dScore(const QPoint &point, const int &dx, const int &dy)
         auto neighborhood = QPoint(point.x() + dx * i, point.y() + dy * i);
 
         if (!isLegal(neighborhood)) {
+            blackLine.push_back(' ');
+            whiteLine.push_back(' ');
+
             continue;
         }
 
@@ -414,23 +444,37 @@ int Gobang::dScore(const QPoint &point, const int &dx, const int &dy)
         }
     }
 
-    int maxScore = 0;
-    auto shapes = trie.parse_text(blackLine);
+	if (const auto &cacheScore = smallCache[blackLine]) {
+		score += *cacheScore;
+	}
+    else {
+	    auto *maxBlackLineScore = new int(0);
+	    const auto shapes = trie.parse_text(blackLine);
 
-    for (const auto &shape : shapes) {
-        maxScore = std::max(maxScore, static_cast<int>(shapeScoreMap.at(shape.get_keyword())));
+	    for (const auto &shape : shapes) {
+	        *maxBlackLineScore = std::max(*maxBlackLineScore, static_cast<int>(shapeScoreHash[shape.get_keyword()]));
+	    }
+
+		smallCache.insert(blackLine, maxBlackLineScore);
+
+		score += *maxBlackLineScore;
     }
 
-    score += maxScore;
-
-    maxScore = 0;
-    shapes = trie.parse_text(whiteLine);
-
-    for (const auto &shape : shapes) {
-    	maxScore = std::max(maxScore, static_cast<int>(shapeScoreMap.at(shape.get_keyword())));
+    if (const auto &cacheScore = smallCache[whiteLine]) {
+	    score += *cacheScore;
     }
+    else {
+	    auto *maxWhiteLineScore = new int(0);
+	    const auto shapes = trie.parse_text(whiteLine);
 
-    score += maxScore;
+	    for (const auto &shape : shapes) {
+    		*maxWhiteLineScore = std::max(*maxWhiteLineScore, static_cast<int>(shapeScoreHash[shape.get_keyword()]));
+	    }
+
+	    smallCache.insert(whiteLine, maxWhiteLineScore);
+
+	    score += *maxWhiteLineScore;
+    }
 
     return score;
 }

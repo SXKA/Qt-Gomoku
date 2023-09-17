@@ -34,7 +34,7 @@ protected:
 protected slots:
     void on_async_finished();
     void on_back_triggered();
-    void on_exit_triggered();
+    void on_exit_triggered() const;
     void on_newGame_triggered();
     void on_menu_aboutToShow() const;
 

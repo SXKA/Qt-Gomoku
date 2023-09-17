@@ -12,6 +12,8 @@ GameWindow::GameWindow(QWidget *parent)
     gameOver = false;
     playerColor = BLACK;
 
+    watcher.setFuture(future);
+
     connect(&watcher, &QFutureWatcher<void>::finished, this, &GameWindow::on_async_finished);
 }
 
@@ -217,9 +219,9 @@ void GameWindow::on_back_triggered()
 }
 
 
-void GameWindow::on_exit_triggered()
+void GameWindow::on_exit_triggered() const
 {
-    this->deleteLater();
+    delete this;
 }
 
 void GameWindow::on_newGame_triggered()
@@ -227,7 +229,7 @@ void GameWindow::on_newGame_triggered()
     auto *gameWindow = new GameWindow;
 
     if (gameType == AI) {
-        if (QMessageBox::question(nullptr, "Color", "Black? ", QMessageBox::Yes | QMessageBox::No,
+        if (QMessageBox::question(nullptr, "Stone", "Black? ", QMessageBox::Yes | QMessageBox::No,
                                   QMessageBox::NoButton) == QMessageBox::Yes) {
             playerColor = BLACK;
         } else {
@@ -240,7 +242,7 @@ void GameWindow::on_newGame_triggered()
     gameWindow->setWindowFlag(Qt::WindowMaximizeButtonHint, false);
     gameWindow->show();
 
-    this->deleteLater();
+    delete this;
 }
 
 void GameWindow::on_menu_aboutToShow() const

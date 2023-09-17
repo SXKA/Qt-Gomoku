@@ -1,14 +1,17 @@
 #pragma once
 
 #include "zobrist.h"
-#include <algorithm>
 #include <array>
+#include <algorithm>
 #include <functional>
-#include <unordered_map>
+#include <string>
+#include <QCache>
 #include <QMessageBox>
+#include <QPair>
 #include <QPoint>
 #include <QSet>
 #include <QStack>
+#include <QString>
 #include <QVector>
 
 #ifdef emit
@@ -17,7 +20,7 @@
 #endif
 
 namespace gobang {
-constexpr auto maxDepth = 8;
+constexpr auto maxDepth = 10;
 
 enum score {
     one = 20,
@@ -50,12 +53,14 @@ public:
     [[nodiscard]] QPoint lastStone() const;
 
 private:
-    static const std::unordered_map<std::string, score> shapeScoreMap;
+    static QCache<std::string, int> largeCache;
+    static QCache<std::string, int> smallCache;
+    static const QHash<std::string, score> shapeScoreHash;
+    aho_corasick::trie trie;
+	zobrist::Zobrist zobrist;
     QSet<QPoint> vacancies;
     QStack<QPoint> record;
     QPoint bestPoint;
-    zobrist::Zobrist zobrist;
-    aho_corasick::trie trie;
     std::array<std::array<stone, 15>, 15> board;
     std::array<int, 72> blackScores;
     std::array<int, 72> whiteScores;

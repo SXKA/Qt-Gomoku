@@ -3,6 +3,7 @@
 #include <array>
 #include <random>
 #include <QPoint>
+#include <QVarLengthArray>
 
 namespace zobrist {
 enum type { empty, exact, lowerBound, upperBound };
@@ -29,7 +30,7 @@ public:
 private:
     std::array<std::array<unsigned long long, 15>, 15> blackRandomTable;
     std::array<std::array<unsigned long long, 15>, 15> whiteRandomTable;
-    std::vector<hashEntry> hashTable;
+    QVarLengthArray<hashEntry> hashTable;
     unsigned long long boardHash;
 };
 }

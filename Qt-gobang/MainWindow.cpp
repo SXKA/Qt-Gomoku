@@ -9,15 +9,16 @@ MainWindow::MainWindow(QWidget *parent)
 void MainWindow::on_ai_released()
 {
     bool playerColor;
-    auto *gameWindow = new GameWindow;
 
-    if (QMessageBox::question(nullptr, "Color", "Black? ", QMessageBox::Yes | QMessageBox::No,
+    if (QMessageBox::question(nullptr, "Stone", "Black? ", QMessageBox::Yes | QMessageBox::No,
                               QMessageBox::NoButton) ==
             QMessageBox::Yes) {
         playerColor = BLACK;
     } else {
         playerColor = WHITE;
     }
+
+    auto *gameWindow = new GameWindow;
 
     gameWindow->setFixedSize(640, 660);
     gameWindow->setGame(playerColor, AI);
