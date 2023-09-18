@@ -35,7 +35,7 @@
      <string>選單</string>
     </property>
     <addaction name="newGame"/>
-    <addaction name="back"/>
+    <addaction name="undo"/>
     <addaction name="exit"/>
    </widget>
    <addaction name="menu"/>
@@ -45,7 +45,7 @@
     <string>新遊戲</string>
    </property>
   </action>
-  <action name="back">
+  <action name="undo">
    <property name="checkable">
     <bool>false</bool>
    </property>

@@ -1,4 +1,4 @@
-#include "MainWindow.h"
+#include "mainwindow.h"
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -8,20 +8,20 @@ MainWindow::MainWindow(QWidget *parent)
 
 void MainWindow::on_ai_released()
 {
-    bool playerColor;
+    Gobang::Stone playerStone;
 
     if (QMessageBox::question(nullptr, "Stone", "Black? ", QMessageBox::Yes | QMessageBox::No,
                               QMessageBox::NoButton) ==
             QMessageBox::Yes) {
-        playerColor = BLACK;
+        playerStone = Gobang::black;
     } else {
-        playerColor = WHITE;
+        playerStone = Gobang::white;
     }
 
     auto *gameWindow = new GameWindow;
 
     gameWindow->setFixedSize(640, 660);
-    gameWindow->setGame(playerColor, AI);
+    gameWindow->setGame(playerStone, AI);
     gameWindow->setWindowFlag(Qt::WindowMaximizeButtonHint, false);
     gameWindow->show();
 
@@ -39,7 +39,7 @@ void MainWindow::on_player_released()
     auto *gameWindow = new GameWindow;
 
     gameWindow->setFixedSize(640, 660);
-    gameWindow->setGame(BLACK, PLAYER);
+    gameWindow->setGame(Gobang::black, PLAYER);
     gameWindow->setWindowFlag(Qt::WindowMaximizeButtonHint, false);
     gameWindow->show();
 

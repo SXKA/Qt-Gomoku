@@ -1,11 +1,11 @@
-#include "gobang.h"
+#include "engine.h"
 
-using namespace gobang;
+using namespace Gobang;
 
-QCache<std::string, int> Gobang::largeCache = QCache<std::string, int>(16777216);
-QCache<std::string, int> Gobang::smallCache = QCache<std::string, int>(65536);
+QCache<std::string, int> Engine::largeCache = QCache<std::string, int>(16777216);
+QCache<std::string, int> Engine::smallCache = QCache<std::string, int>(65536);
 
-const QHash<std::string, score> Gobang::shapeScoreHash = {
+const QHash<std::string, Score> Engine::shapeScoreHash = {
     {"001000", one}, {"000100", one},
     {"010100", two}, {"001010", two}, {"001100", two},
     {"011100", three}, {"001110", three}, {"010110", three}, {"011010", three},
@@ -19,22 +19,10 @@ inline bool operator< (const QPoint& lhs, const QPoint& rhs)
 	return lhs.y() == rhs.y() ? lhs.x() < rhs.x() : rhs.y() < lhs.y();
 }
 
-Gobang::Gobang()
+Engine::Engine() : movesGenerator(&board), blackScores({}), whiteScores({}), blackTotalScore(0), whiteTotalScore(0)
 {
-    trie = aho_corasick::trie();
-    zobrist = zobrist::Zobrist(1048576);
-    vacancies = QSet<QPoint>();
-    record = QStack<QPoint>();
-    bestPoint = QPoint();
-    board = std::array<std::array<stone, 15>, 15>();
-    blackScores = std::array<int, 72>();
-    whiteScores = std::array<int, 72>();
-    blackTotalScore = 0;
-    whiteTotalScore = 0;
-
     for (int i = 0; i < 15; ++i) {
         for (int j = 0; j < 15; ++j) {
-            vacancies.insert(QPoint(i, j));
             board[i][j] = empty;
         }
     }
@@ -46,36 +34,36 @@ Gobang::Gobang()
     }
 }
 
-bool Gobang::isLegal(const QPoint &point)
+bool Engine::isLegal(const QPoint &point)
 {
     return point.x() >= 0 && point.x() < 15 && point.y() >= 0 && point.y() < 15;
 }
 
-void Gobang::back(const int &step)
+void Engine::move(const QPoint &point, const Stone &stone)
+{
+    movesGenerator.move(point);
+    record.push(point);
+    translationTable.translate(point, stone);
+    board[point.x()][point.y()] = stone;
+
+    updateScore(point);
+}
+
+void Engine::undo(const int &step)
 {
     for (int i = 0; i < step; ++i) {
-        QPoint point = record.top();
+        auto point = record.top();
 
+        movesGenerator.undo(point);
         record.pop();
-        vacancies.insert(point);
-        zobrist.translate(point, checkStone(point));
+        translationTable.translate(point, checkStone(point));
         board[point.x()][point.y()] = empty;
 
         updateScore(point);
     }
 }
 
-void Gobang::play(const QPoint &point, const stone &stone)
-{
-    vacancies.remove(point);
-    record.push(point);
-    zobrist.translate(point, stone);
-    board[point.x()][point.y()] = stone;
-
-    updateScore(point);
-}
-
-bool Gobang::gameOver(const QPoint &point, const stone &stone) const
+bool Engine::gameOver(const QPoint &point, const Stone &stone) const
 {
     QString winner = stone == black ? "Black" : "White";
 
@@ -97,7 +85,7 @@ bool Gobang::gameOver(const QPoint &point, const stone &stone) const
     return false;
 }
 
-bool Gobang::isInitial(const bool &type, const stone &stone) const
+bool Engine::isInitial(const bool &type, const Stone &stone) const
 {
     if(!type) {
         if(record.empty()) {
@@ -112,12 +100,12 @@ bool Gobang::isInitial(const bool &type, const stone &stone) const
     return record.empty();
 }
 
-stone Gobang::checkStone(const QPoint &point) const
+Stone Engine::checkStone(const QPoint &point) const
 {
     return board[point.x()][point.y()];
 }
 
-state Gobang::gameState(const QPoint &point, const stone &stone) const
+State Engine::gameState(const QPoint &point, const Stone &stone) const
 {
     constexpr std::array<int, 2> d = {-1, 1};
     constexpr std::array<int, 4> dx = {1, 0, 1, 1};
@@ -127,14 +115,12 @@ state Gobang::gameState(const QPoint &point, const stone &stone) const
         int count = 1;
 
         for (int j = 0; j < 2; ++j) {
-            int x = point.x() + d[j] * dx[i];
-            int y = point.y() + d[j] * dy[i];
+            auto neighborhood = point + QPoint(d[j] * dx[i], d[j] * dy[i]);
 
-            while (isLegal(QPoint(x, y)) && checkStone(QPoint(x, y)) == stone) {
+            while (isLegal(neighborhood) && checkStone(neighborhood) == stone) {
                 ++count;
 
-                x += d[j] * dx[i];
-                y += d[j] * dy[i];
+                neighborhood += QPoint(d[j] * dx[i], d[j] * dy[i]);
             }
         }
 
@@ -154,21 +140,21 @@ state Gobang::gameState(const QPoint &point, const stone &stone) const
     return draw;
 }
 
-QPoint Gobang::ai(const stone &stone)
+QPoint Engine::bestMove(const Stone &stone)
 {
-    const auto score = alphaBetaPrune(stone, maxDepth);
+    const auto score = negamax(stone, limitDepth);
 
     qInfo() << "Score: " << score;
 
     return bestPoint;
 }
 
-QPoint Gobang::lastStone() const
+QPoint Engine::lastStone() const
 {
     return record.empty() ? QPoint() : record.top();
 }
 
-void Gobang::updateScore(const QPoint &point)
+void Engine::updateScore(const QPoint &point)
 {
     std::array<std::string, 4> blackLines;
     std::array<std::string, 4> whiteLines;
@@ -282,114 +268,7 @@ void Gobang::updateScore(const QPoint &point)
     }
 }
 
-bool Gobang::isIsolated(const QPoint &point) const
-{
-    for (int i = -1; i <= 1; ++i) {
-        for (int j = -1; j <= 1; ++j) {
-            const QPoint neighborhood = point + QPoint(i, j);
-
-            if (isLegal(neighborhood) && checkStone(neighborhood) != empty) {
-                return false;
-            }
-        }
-    }
-
-    return true;
-}
-
-int Gobang::alphaBetaPrune(const stone &stone, const int &depth, int alpha, const int &beta)
-{
-    if (depth != maxDepth && zobrist.contains(zobrist.hash(), depth)) {
-        const auto &entry = zobrist.at(zobrist.hash());
-
-        switch (entry.type) {
-        case zobrist::empty:
-            qWarning() << "Hashing error!";
-
-            break;
-        case zobrist::exact:
-            return entry.score;
-        case zobrist::lowerBound:
-            if (entry.score >= beta) {
-                return beta;
-            }
-
-            break;
-        case zobrist::upperBound:
-            if (entry.score <= alpha) {
-                return alpha;
-            }
-
-            break;
-        }
-    }
-
-    const auto &firstScore = evaluate(stone);
-    const auto &secondScore = evaluate(static_cast<const gobang::stone>(!stone));
-
-    if (firstScore >= five) {
-        return maxScore - 1000 - (maxDepth - depth);
-    }
-
-    if (secondScore >= five) {
-        return minScore + 1000 + (maxDepth - depth);
-    }
-
-    if (!depth || vacancies.empty()) {
-        const auto score = firstScore - secondScore;
-
-        zobrist.insert(zobrist.hash(), zobrist::exact, depth, score);
-
-        return score;
-    }
-
-    QVector<QPair<int, QPoint>> candidates;
-
-    for (const auto &vacancy : vacancies) {
-        if (!isIsolated(vacancy)) {
-            candidates.emplace_back(calculateScore(vacancy), vacancy);
-        }
-    }
-
-    std::sort(candidates.begin(), candidates.end(), std::greater<>());
-
-    if (const int limit = 12 - (((maxDepth - depth) >> 1) << 1); candidates.size() > limit) {
-	    candidates.resize(limit);
-    } 
-
-    auto valueType = zobrist::upperBound;
-
-    for (const auto& [score, candidate] : candidates) {
-        play(candidate, stone);
-
-        const auto vacancyScore = -alphaBetaPrune(static_cast<const gobang::stone>(!stone), depth - 1,
-                                                  -beta, -alpha);
-
-        back(1);
-
-        if (vacancyScore >= beta) {
-            zobrist.insert(zobrist.hash(), zobrist::lowerBound, depth, beta);
-
-            return beta;
-        }
-
-        if (vacancyScore > alpha) {
-            if (depth == maxDepth) {
-                bestPoint = candidate;
-            }
-
-            alpha = vacancyScore;
-
-            valueType = zobrist::exact;
-        }
-    }
-
-    zobrist.insert(zobrist.hash(), valueType, depth, alpha);
-
-    return alpha;
-}
-
-int Gobang::calculateScore(const QPoint &point)
+int Engine::calculateScore(const QPoint &point)
 {
     int score = 0;
     constexpr std::array<int, 4> dx = {1, 0, 1, 1};
@@ -402,7 +281,7 @@ int Gobang::calculateScore(const QPoint &point)
     return score;
 }
 
-int Gobang::dScore(const QPoint &point, const int &dx, const int &dy)
+int Engine::dScore(const QPoint &point, const int &dx, const int &dy)
 {
     std::string blackLine;
     std::string whiteLine;
@@ -480,7 +359,105 @@ int Gobang::dScore(const QPoint &point, const int &dx, const int &dy)
 }
 
 
-int Gobang::evaluate(const stone &stone) const
+int Engine::evaluate(const Stone &stone) const
 {
     return stone == black ? blackTotalScore : whiteTotalScore;
+}
+
+int Engine::negamax(const Stone &stone, const int &depth, int alpha, const int &beta)
+{
+    if (depth != limitDepth && translationTable.contains(translationTable.hash(), depth)) {
+        const auto &entry = translationTable.at(translationTable.hash());
+
+        switch (entry.type) {
+        case zobrist::hashEntry::empty:
+            qWarning() << "Hashing error!";
+
+            break;
+        case zobrist::hashEntry::exact:
+            return entry.score;
+        case zobrist::hashEntry::beta:
+            if (entry.score >= beta) {
+                return beta;
+            }
+
+            break;
+        case zobrist::hashEntry::alpha:
+            if (entry.score <= alpha) {
+                return alpha;
+            }
+
+            break;
+        }
+    }
+
+    const auto &firstScore = evaluate(stone);
+    const auto &secondScore = evaluate(static_cast<const Stone>(!stone));
+
+    if (firstScore >= five) {
+        return maxScore - 1000 - (limitDepth - depth);
+    }
+
+    if (secondScore >= five) {
+        return minScore + 1000 + (limitDepth - depth);
+    }
+
+    if (depth <= 0 || movesGenerator.empty()) {
+        const auto score = firstScore - secondScore;
+
+        translationTable.insert(translationTable.hash(), zobrist::hashEntry::exact, depth, score);
+
+        return score;
+    }
+
+    const auto vacancyScore = -negamax(static_cast<const Stone>(!stone), depth - 1 - r, -beta, -beta + 1);
+
+    if (vacancyScore >= beta) {
+        translationTable.insert(translationTable.hash(), zobrist::hashEntry::beta, depth, beta);
+
+	    return beta;
+    }
+
+    QVector<QPair<int, QPoint>> candidates;
+    const auto& moves = movesGenerator.generate();
+
+    for (const auto &move : moves) {
+    	candidates.emplace_back(calculateScore(move), move);
+    }
+
+    std::sort(candidates.begin(), candidates.end(), std::greater<>());
+
+    if (const int limit = 12 - (((limitDepth - depth) >> 1) << 1); candidates.size() > limit) {
+	    candidates.resize(limit);
+    } 
+
+    auto valueType = zobrist::hashEntry::alpha;
+
+    for (const auto& [score, candidate] : candidates) {
+        move(candidate, stone);
+
+        const auto candidateScore = -negamax(static_cast<const Stone>(!stone), depth - 1, -beta, -alpha);
+
+        undo(1);
+
+        if (candidateScore >= beta) {
+            translationTable.insert(translationTable.hash(), zobrist::hashEntry::beta, depth, beta);
+
+            return beta;
+        }
+
+        if (candidateScore > alpha) {
+            if (depth == limitDepth) {
+                bestPoint = candidate;
+            }
+
+            alpha = candidateScore;
+
+            valueType = zobrist::hashEntry::exact;
+        }
+    }
+
+    translationTable.insert(translationTable.hash(), valueType, depth, alpha);
+
+    return alpha;
 }

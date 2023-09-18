@@ -1,6 +1,7 @@
-#pragma once
+#ifndef GAMEWINDOW_H
+#define GAMEWINDOW_H
 
-#include "gobang.h"
+#include "../gobang/engine.h"
 #include "ui_GameWindow.h"
 #include "MainWindow.h"
 #include <QtEvents>
@@ -15,16 +16,13 @@
 #define AI false
 #define PLAYER true
 
-#define BLACK false
-#define WHITE true
-
 class GameWindow : public QMainWindow
 {
     Q_OBJECT
 
 public:
     GameWindow(QWidget *parent = nullptr);
-    void setGame(const bool &color, const bool &type);
+    void setGame(const Gobang::Stone &stone, const bool &type);
 
 protected:
     void mouseMoveEvent(QMouseEvent *event) override;
@@ -33,7 +31,7 @@ protected:
 
 protected slots:
     void on_async_finished();
-    void on_back_triggered();
+    void on_undo_triggered();
     void on_exit_triggered() const;
     void on_newGame_triggered();
     void on_menu_aboutToShow() const;
@@ -44,8 +42,10 @@ private:
     QFuture<void> future;
     QPoint last;
     QPoint move;
-    gobang::Gobang gobang;
-    bool gameType;
+    Gobang::Engine engine;
+    Gobang::Stone playerStone;
     bool gameOver;
-    bool playerColor;
+    bool gameType;
 };
+
+#endif

@@ -1,17 +1,9 @@
-#include "GameWindow.h"
+#include "gamewindow.h"
 
 GameWindow::GameWindow(QWidget *parent)
-    : QMainWindow(parent)
+    : QMainWindow(parent), playerStone(Gobang::black), gameOver(false), gameType(AI)
 {
     ui.setupUi(this);
-    future = QFuture<void>();
-    last = QPoint();
-    move = QPoint();
-    gobang = gobang::Gobang();
-    gameType = AI;
-    gameOver = false;
-    playerColor = BLACK;
-
     watcher.setFuture(future);
 
     connect(&watcher, &QFutureWatcher<void>::finished, this, &GameWindow::on_async_finished);
@@ -35,17 +27,17 @@ void GameWindow::mouseReleaseEvent(QMouseEvent *event)
         return;
     }
 
-    if (gobang::Gobang::isLegal(move) && gobang.checkStone(move) == gobang::empty) {
-        gobang.play(move, static_cast<const gobang::stone>(playerColor));
+    if (Gobang::Engine::isLegal(move) && engine.checkStone(move) == Gobang::empty) {
+        engine.move(move, playerStone);
     } else {
         return;
     }
 
-    last = gobang.lastStone();
+    last = engine.lastStone();
 
     repaint();
 
-    if (gobang.gameOver(last, static_cast<const gobang::stone>(playerColor))) {
+    if (engine.gameOver(last, playerStone)) {
         gameOver = true;
 
         return;
@@ -58,16 +50,16 @@ void GameWindow::mouseReleaseEvent(QMouseEvent *event)
         setUpdatesEnabled(false);
 
         future = QtConcurrent::run([ &, this]() {
-            const auto aiStone = static_cast<const gobang::stone>(!playerColor);
+            const auto aiStone = static_cast<const Gobang::Stone>(!playerStone);
 
-            gobang.play(gobang.ai(aiStone), aiStone);
+            engine.move(engine.bestMove(aiStone), aiStone);
 
-            last = gobang.lastStone();
+            last = engine.lastStone();
         });
 
         watcher.setFuture(future);
     } else {
-        playerColor = !playerColor;
+        playerStone = static_cast<const Gobang::Stone>(!playerStone);
     }
 }
 
@@ -120,12 +112,12 @@ void GameWindow::paintEvent(QPaintEvent *event)
 
     for (int i = 0; i < 15; ++i) {
         for (int j = 0; j < 15; ++j) {
-            if (gobang.checkStone(QPoint(i, j)) == static_cast<const gobang::stone>(BLACK)) {
+            if (engine.checkStone(QPoint(i, j)) == Gobang::black) {
                 brush.setColor(Qt::black);
 
                 painter.setBrush(brush);
                 painter.drawEllipse(QPoint((j + 1) * 40, (i + 1) * 40 + 20), 18, 18);
-            } else if (gobang.checkStone(QPoint(i, j)) == static_cast<const gobang::stone>(WHITE)) {
+            } else if (engine.checkStone(QPoint(i, j)) == Gobang::white) {
                 brush.setColor(Qt::white);
 
                 painter.setPen(Qt::NoPen);
@@ -173,15 +165,15 @@ void GameWindow::paintEvent(QPaintEvent *event)
     }
 }
 
-void GameWindow::setGame(const bool &color, const bool &type)
+void GameWindow::setGame(const Gobang::Stone &stone, const bool &type)
 {
-    playerColor = color;
+    playerStone = stone;
     gameType = type;
 
-    if (playerColor == WHITE && gameType == AI) {
-        gobang.play(QPoint(7, 7), static_cast<const gobang::stone>(BLACK));
+    if (playerStone == Gobang::white && gameType == AI) {
+        engine.move(QPoint(7, 7), Gobang::black);
 
-        last = gobang.lastStone();
+        last = engine.lastStone();
     }
 }
 
@@ -193,27 +185,25 @@ void GameWindow::on_async_finished()
     setUpdatesEnabled(true);
     repaint();
 
-    if (gobang.gameOver(last, static_cast<const gobang::stone>(!playerColor))) {
+    if (engine.gameOver(last, static_cast<const Gobang::Stone>(!playerStone))) {
         gameOver = true;
     }
 }
 
 
-void GameWindow::on_back_triggered()
+void GameWindow::on_undo_triggered()
 {
     gameOver = false;
 
-    QPoint point;
-
     if (gameType == AI) {
-        gobang.back(2);
+        engine.undo(2);
     } else {
-        gobang.back(1);
+        engine.undo(1);
 
-        playerColor = !playerColor;
+        playerStone = static_cast<const Gobang::Stone>(!playerStone);
     }
 
-    last = gobang.lastStone();
+    last = engine.lastStone();
 
     update();
 }
@@ -231,13 +221,13 @@ void GameWindow::on_newGame_triggered()
     if (gameType == AI) {
         if (QMessageBox::question(nullptr, "Stone", "Black? ", QMessageBox::Yes | QMessageBox::No,
                                   QMessageBox::NoButton) == QMessageBox::Yes) {
-            playerColor = BLACK;
+            playerStone = Gobang::black;
         } else {
-            playerColor = WHITE;
+            playerStone = Gobang::white;
         }
     }
 
-    gameWindow->setGame(playerColor, gameType);
+    gameWindow->setGame(playerStone, gameType);
     gameWindow->setFixedSize(640, 660);
     gameWindow->setWindowFlag(Qt::WindowMaximizeButtonHint, false);
     gameWindow->show();
@@ -247,9 +237,9 @@ void GameWindow::on_newGame_triggered()
 
 void GameWindow::on_menu_aboutToShow() const
 {
-    if (gobang.isInitial(gameType, static_cast<const gobang::stone>(playerColor))) {
-        ui.back->setVisible(false);
+    if (engine.isInitial(gameType, playerStone)) {
+        ui.undo->setVisible(false);
     } else {
-        ui.back->setVisible(true);
+        ui.undo->setVisible(true);
     }
 }

@@ -1,4 +1,5 @@
-#pragma once
+#ifndef MAINWINDOW_H
+#define MAINWINDOW_H
 
 #include "ui_MainWindow.h"
 #include "GameWindow.h"
@@ -19,3 +20,5 @@ protected slots:
 private:
     Ui::MainWindowClass ui_;
 };
+
+#endif

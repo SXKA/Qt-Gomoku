@@ -103,23 +103,27 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="zobrist.cpp" />
-    <QtRcc Include="MainWindow.qrc" />
-    <QtUic Include="GameWindow.ui" />
-    <QtUic Include="MainWindow.ui" />
-    <QtMoc Include="MainWindow.h" />
-    <ClCompile Include="GameWindow.cpp" />
-    <ClCompile Include="gobang.cpp" />
-    <ClCompile Include="MainWindow.cpp" />
-    <ClCompile Include="main.cpp" />
+    <ClCompile Include="src\gobang\engine.cpp" />
+    <ClCompile Include="src\gobang\movesgenerator.cpp" />
+    <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\windows\gamewindow.cpp" />
+    <ClCompile Include="src\windows\mainwindow.cpp" />
+    <ClCompile Include="src\zobrist\translationtable.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <QtMoc Include="GameWindow.h" />
+    <QtRcc Include="resource\mainwindow.qrc" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="aho_corasick.hpp" />
-    <ClInclude Include="gobang.h" />
-    <ClInclude Include="zobrist.h" />
+    <QtUic Include="src\ui\gamewindow.ui" />
+    <QtUic Include="src\ui\mainwindow.ui" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\gobang\engine.h" />
+    <ClInclude Include="src\gobang\movesgenerator.h" />
+    <ClInclude Include="src\util\aho_corasick.hpp" />
+    <ClInclude Include="src\zobrist\translationtable.h" />
+    <QtMoc Include="src\windows\mainwindow.h" />
+    <QtMoc Include="src\windows\gamewindow.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">

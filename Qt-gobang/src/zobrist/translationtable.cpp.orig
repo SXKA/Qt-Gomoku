@@ -1,16 +1,13 @@
-#include  "zobrist.h"
+#include  "TranslationTable.h"
 
 using namespace zobrist;
 
-Zobrist::Zobrist() : Zobrist(65536)
+TranslationTable::TranslationTable() : TranslationTable(65536)
 {
 };
 
-Zobrist::Zobrist(const int &size)
+TranslationTable::TranslationTable(const int &size) : hashTable(QVarLengthArray<hashEntry>(size))
 {
-    blackRandomTable = std::array<std::array<unsigned long long, 15>, 15>();
-    whiteRandomTable = std::array<std::array<unsigned long long, 15>, 15>();
-
     std::random_device device;
     std::default_random_engine engine(device());
     std::uniform_int_distribution<unsigned long long> distribution;
@@ -22,16 +19,15 @@ Zobrist::Zobrist(const int &size)
         }
     }
 
-    hashTable = QVarLengthArray<hashEntry>(size);
     boardHash = distribution(engine);
 }
 
-void Zobrist::insert(const unsigned long long &hashKey, const type &type, const int &depth,
+void TranslationTable::insert(const unsigned long long &hashKey, const hashEntry::Type &type, const int &depth,
                      const int &score)
 {
     auto &entry = hashTable[hashKey & (hashTable.size() - 1)];
 
-    if (entry.type == empty && entry.depth <= depth) {
+    if (entry.type == hashEntry::empty && entry.depth <= depth) {
         entry.checkSum = hashKey;
         entry.type = type;
         entry.depth = depth;
@@ -39,19 +35,19 @@ void Zobrist::insert(const unsigned long long &hashKey, const type &type, const 
     }
 }
 
-bool Zobrist::contains(const unsigned long long &hashKey, const int &depth) const
+bool TranslationTable::contains(const unsigned long long &hashKey, const int &depth) const
 {
     auto &entry = hashTable[hashKey & (hashTable.size() - 1)];
 
-    return entry.type != empty && entry.checkSum == hashKey && entry.depth >= depth;
+    return entry.type != hashEntry::empty && entry.checkSum == hashKey && entry.depth >= depth;
 }
 
-unsigned long long Zobrist::hash() const
+unsigned long long TranslationTable::hash() const
 {
     return boardHash;
 }
 
-unsigned long long Zobrist::translate(const QPoint &point, const bool &color)
+unsigned long long TranslationTable::translate(const QPoint &point, const bool &color)
 {
     const auto randomTable = color == false ? blackRandomTable : whiteRandomTable;
 
@@ -60,7 +56,7 @@ unsigned long long Zobrist::translate(const QPoint &point, const bool &color)
     return boardHash;
 }
 
-hashEntry Zobrist::at(const unsigned long long &hashKey) const
+hashEntry TranslationTable::at(const unsigned long long &hashKey) const
 {
     return hashTable[hashKey & (hashTable.size() - 1)];
 }

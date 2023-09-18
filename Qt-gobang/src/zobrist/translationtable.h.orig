@@ -1,26 +1,26 @@
-#pragma once
+#ifndef TRANSLATIONTABLE_H
+#define TRANSLATIONTABLE_H
 
 #include <array>
 #include <random>
 #include <QPoint>
 #include <QVarLengthArray>
 
-namespace zobrist {
-enum type { empty, exact, lowerBound, upperBound };
-
+namespace zobrist
+{
 struct hashEntry {
     unsigned long long checkSum;
-    type type;
+    enum Type { empty, exact, alpha, beta } type;
     int score;
     int depth;
 };
 
-class Zobrist
+class TranslationTable
 {
 public:
-    Zobrist();
-    Zobrist(const int &size);
-    void insert(const unsigned long long &hashKey, const type &type, const int &depth,
+    TranslationTable();
+    TranslationTable(const int &size);
+    void insert(const unsigned long long &hashKey, const hashEntry::Type &type, const int &depth,
                 const int &score);
     bool contains(const unsigned long long &hashKey, const int &depth) const;
     unsigned long long hash() const;
@@ -34,3 +34,5 @@ private:
     unsigned long long boardHash;
 };
 }
+
+#endif

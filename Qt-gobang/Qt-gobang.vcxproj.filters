@@ -21,54 +21,81 @@
       <UniqueIdentifier>{639EADAA-A684-42e4-A9AD-28FC9BCB8F7C}</UniqueIdentifier>
       <Extensions>ts</Extensions>
     </Filter>
+    <Filter Include="Header Files\windows">
+      <UniqueIdentifier>{4308dce2-5277-44a8-aa23-5767589ee0df}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\gobang">
+      <UniqueIdentifier>{7adcb6ff-43c6-4afc-bc62-61c7f0d7ff5f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\zobrist">
+      <UniqueIdentifier>{fc2f25fa-47ba-4e9c-90aa-bfa97807618a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\util">
+      <UniqueIdentifier>{7050c27f-8df3-41d6-822c-36a0dc5eacd9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\windows">
+      <UniqueIdentifier>{d7b646ed-61e8-4d2f-8baf-143ba82fdabc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\gobang">
+      <UniqueIdentifier>{72043acd-14d8-45f1-9457-99c657210673}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\zobrist">
+      <UniqueIdentifier>{bd7d5a1b-3c70-4724-b999-6e1e06e214eb}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <QtRcc Include="MainWindow.qrc">
+    <ClCompile Include="src\windows\gamewindow.cpp">
+      <Filter>Source Files\windows</Filter>
+    </ClCompile>
+    <ClCompile Include="src\windows\mainwindow.cpp">
+      <Filter>Source Files\windows</Filter>
+    </ClCompile>
+    <ClCompile Include="src\gobang\engine.cpp">
+      <Filter>Source Files\gobang</Filter>
+    </ClCompile>
+    <ClCompile Include="src\gobang\movesgenerator.cpp">
+      <Filter>Source Files\gobang</Filter>
+    </ClCompile>
+    <ClCompile Include="src\main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\zobrist\translationtable.cpp">
+      <Filter>Source Files\zobrist</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <QtRcc Include="resource\mainwindow.qrc">
       <Filter>Resource Files</Filter>
     </QtRcc>
-    <QtUic Include="MainWindow.ui">
+  </ItemGroup>
+  <ItemGroup>
+    <QtUic Include="src\ui\gamewindow.ui">
       <Filter>Form Files</Filter>
     </QtUic>
-    <QtMoc Include="MainWindow.h">
-      <Filter>Header Files</Filter>
-    </QtMoc>
-    <ClCompile Include="MainWindow.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="main.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="GameWindow.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="gobang.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="zobrist.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <QtMoc Include="GameWindow.h">
-      <Filter>Header Files</Filter>
-    </QtMoc>
-  </ItemGroup>
-  <ItemGroup>
-    <QtUic Include="GameWindow.ui">
+    <QtUic Include="src\ui\mainwindow.ui">
       <Filter>Form Files</Filter>
     </QtUic>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="gobang.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="src\zobrist\translationtable.h">
+      <Filter>Header Files\zobrist</Filter>
     </ClInclude>
-    <ClInclude Include="zobrist.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="src\util\aho_corasick.hpp">
+      <Filter>Header Files\util</Filter>
     </ClInclude>
-    <ClInclude Include="aho_corasick.hpp">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="src\gobang\engine.h">
+      <Filter>Header Files\gobang</Filter>
     </ClInclude>
+    <ClInclude Include="src\gobang\movesgenerator.h">
+      <Filter>Header Files\gobang</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <QtMoc Include="src\windows\gamewindow.h">
+      <Filter>Header Files\windows</Filter>
+    </QtMoc>
+    <QtMoc Include="src\windows\mainwindow.h">
+      <Filter>Header Files\windows</Filter>
+    </QtMoc>
   </ItemGroup>
 </Project>
