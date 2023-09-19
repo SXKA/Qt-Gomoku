@@ -9,6 +9,6 @@ Algorithm reference to https://github.com/kimlongli/FiveChess
 - On the basis of the limited number of game tree branches, the depth penalty is added.
 - Search depth reaches 10 layers.
 ## Homepage
-![image](https://github.com/SXKA/Qt-gobang/blob/master/Qt-gobang/resource/picture/mainwindow.png)
+![image](https://github.com/SXKA/Qt-Gomoku/blob/master/Qt-Gomoku/resource/picture/mainwindow.png)
 ## Game UI
-<div align=center><img src=https://github.com/SXKA/Qt-gobang/blob/master/Qt-gobang/resource/picture/gamewindow.png></div>
+<div align=center><img src=https://github.com/SXKA/Qt-Gomoku/blob/master/Qt-Gomoku/resource/picture/gamewindow.png></div>
