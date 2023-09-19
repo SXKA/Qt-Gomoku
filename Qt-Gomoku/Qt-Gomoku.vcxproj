@@ -16,6 +16,7 @@
     <WindowsTargetPlatformVersion Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">10.0.22621.0</WindowsTargetPlatformVersion>
     <WindowsTargetPlatformVersion Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">10.0.22621.0</WindowsTargetPlatformVersion>
     <QtMsBuild Condition="'$(QtMsBuild)'=='' OR !Exists('$(QtMsBuild)\qt.targets')">$(MSBuildProjectDirectory)\QtMsBuild</QtMsBuild>
+    <ProjectName>Qt-Gomoku</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'" Label="Configuration">
@@ -103,8 +104,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="src\gobang\engine.cpp" />
-    <ClCompile Include="src\gobang\movesgenerator.cpp" />
+    <ClCompile Include="src\gomoku\engine.cpp" />
+    <ClCompile Include="src\gomoku\movesgenerator.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\windows\gamewindow.cpp" />
     <ClCompile Include="src\windows\mainwindow.cpp" />
@@ -118,9 +119,9 @@
     <QtUic Include="src\ui\mainwindow.ui" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\gobang\engine.h" />
-    <ClInclude Include="src\gobang\movesgenerator.h" />
-    <ClInclude Include="src\util\aho_corasick.hpp" />
+    <ClInclude Include="src\algorithm\aho_corasick.hpp" />
+    <ClInclude Include="src\gomoku\engine.h" />
+    <ClInclude Include="src\gomoku\movesgenerator.h" />
     <ClInclude Include="src\zobrist\translationtable.h" />
     <QtMoc Include="src\windows\mainwindow.h" />
     <QtMoc Include="src\windows\gamewindow.h" />

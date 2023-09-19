@@ -325,33 +325,31 @@ int Engine::dScore(const QPoint &point, const int &dx, const int &dy)
     if (const auto &cacheScore = smallCache[blackLine]) {
         score += *cacheScore;
     } else {
-        auto *maxBlackLineScore = new int(0);
+        auto *accumulateScore = new int(0);
         const auto shapes = trie.parse_text(blackLine);
 
         for (const auto &shape : shapes) {
-            *maxBlackLineScore = std::max(*maxBlackLineScore,
-                                          static_cast<int>(shapeScoreHash[shape.get_keyword()]));
+            *accumulateScore += std::max(*accumulateScore, static_cast<int>(shapeScoreHash[shape.get_keyword()]));
         }
 
-        smallCache.insert(blackLine, maxBlackLineScore);
+        smallCache.insert(blackLine, accumulateScore);
 
-        score += *maxBlackLineScore;
+        score += *accumulateScore;
     }
 
     if (const auto &cacheScore = smallCache[whiteLine]) {
         score += *cacheScore;
     } else {
-        auto *maxWhiteLineScore = new int(0);
+        auto *accumulateScore = new int(0);
         const auto shapes = trie.parse_text(whiteLine);
 
         for (const auto &shape : shapes) {
-            *maxWhiteLineScore = std::max(*maxWhiteLineScore,
-                                          static_cast<int>(shapeScoreHash[shape.get_keyword()]));
+            *accumulateScore += std::max(*accumulateScore, static_cast<int>(shapeScoreHash[shape.get_keyword()]));
         }
 
-        smallCache.insert(whiteLine, maxWhiteLineScore);
+        smallCache.insert(whiteLine, accumulateScore);
 
-        score += *maxWhiteLineScore;
+        score += *accumulateScore;
     }
 
     return score;

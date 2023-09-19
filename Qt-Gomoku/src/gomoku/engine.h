@@ -18,11 +18,10 @@
 
 #ifdef emit
 #undef emit
-#include "../util/aho_corasick.hpp"
+#include "../algorithm/aho_corasick.hpp"
 #endif
 
-namespace Gobang
-{
+namespace Gobang {
 constexpr auto r = 2;
 constexpr auto limitDepth = 10;
 
@@ -73,7 +72,7 @@ private:
     int dScore(const QPoint &point, const int &dx, const int &dy);
     int evaluate(const Stone &stone) const;
     int negamax(const Stone &stone, const int &depth, int alpha = minScore,
-				const int &beta = maxScore - 1);
+                const int &beta = maxScore - 1);
 };
 }
 #endif

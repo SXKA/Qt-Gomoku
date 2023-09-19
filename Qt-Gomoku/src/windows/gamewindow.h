@@ -1,7 +1,7 @@
 #ifndef GAMEWINDOW_H
 #define GAMEWINDOW_H
 
-#include "../gobang/engine.h"
+#include "../gomoku/engine.h"
 #include "ui_GameWindow.h"
 #include "MainWindow.h"
 #include <QtEvents>

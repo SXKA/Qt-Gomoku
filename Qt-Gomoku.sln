@@ -1,9 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.6.33829.357
+VisualStudioVersion = 17.7.34031.279
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Qt-gobang", "Qt-gobang\Qt-gobang.vcxproj", "{582CB921-EA9A-4013-9577-24AD3874CCFD}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Qt-Gomoku", "Qt-Gomoku\Qt-gobang.vcxproj", "{582CB921-EA9A-4013-9577-24AD3874CCFD}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -20,6 +20,6 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {C64AF9BE-06FD-4186-8840-23E790DF07B9}
+		SolutionGuid = {03895F17-85B8-44B3-A6B9-F37722C52AA8}
 	EndGlobalSection
 EndGlobal
