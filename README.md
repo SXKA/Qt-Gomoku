@@ -5,9 +5,9 @@ Algorithm reference to https://github.com/kimlongli/FiveChess
 ## Features
 - Written in modern C++.
 - Use async way to call AI to avoid main thread blocking.
-- Introduce null move pruning.
+- Introduce null move pruning and PVS.
 - On the basis of the limited number of game tree branches, the depth penalty is added.
-- Search depth reaches 10 layers.
+- Search depth reaches 12 layers.
 ## Homepage
 ![image](https://github.com/SXKA/Qt-Gomoku/blob/master/Qt-Gomoku/resource/picture/mainwindow.png)
 ## Game UI
