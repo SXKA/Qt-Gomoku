@@ -1,4 +1,4 @@
-# Qt-gobang
+# Qt-Gomoku
 Game UI is from https://github.com/Kenny-ting/Chess-Game-2020
 
 Algorithm reference to https://github.com/kimlongli/FiveChess
