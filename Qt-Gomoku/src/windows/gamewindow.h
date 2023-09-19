@@ -22,7 +22,7 @@ class GameWindow : public QMainWindow
 
 public:
     GameWindow(QWidget *parent = nullptr);
-    void setGame(const Gobang::Stone &stone, const bool &type);
+    void setGame(const Gomoku::Stone &stone, const bool &type);
 
 protected:
     void mouseMoveEvent(QMouseEvent *event) override;
@@ -42,8 +42,8 @@ private:
     QFuture<void> future;
     QPoint last;
     QPoint move;
-    Gobang::Engine engine;
-    Gobang::Stone playerStone;
+    Gomoku::Engine engine;
+    Gomoku::Stone playerStone;
     bool gameOver;
     bool gameType;
 };

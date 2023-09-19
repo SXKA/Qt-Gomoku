@@ -6,10 +6,10 @@
 #include <QPoint>
 #include <QVarLengthArray>
 
-namespace zobrist {
+namespace Zobrist {
 struct hashEntry {
     unsigned long long checkSum;
-    enum Type { empty, exact, alpha, beta } type;
+    enum Type { Empty, Exact, LowBound, UpperBound } type;
     int score;
     int depth;
 };

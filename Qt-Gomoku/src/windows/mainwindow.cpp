@@ -8,14 +8,14 @@ MainWindow::MainWindow(QWidget *parent)
 
 void MainWindow::on_ai_released()
 {
-    Gobang::Stone playerStone;
+    Gomoku::Stone playerStone;
 
     if (QMessageBox::question(nullptr, "Stone", "Black? ", QMessageBox::Yes | QMessageBox::No,
                               QMessageBox::NoButton) ==
             QMessageBox::Yes) {
-        playerStone = Gobang::black;
+        playerStone = Gomoku::Black;
     } else {
-        playerStone = Gobang::white;
+        playerStone = Gomoku::White;
     }
 
     auto *gameWindow = new GameWindow;
@@ -39,7 +39,7 @@ void MainWindow::on_player_released()
     auto *gameWindow = new GameWindow;
 
     gameWindow->setFixedSize(640, 660);
-    gameWindow->setGame(Gobang::black, PLAYER);
+    gameWindow->setGame(Gomoku::Black, PLAYER);
     gameWindow->setWindowFlag(Qt::WindowMaximizeButtonHint, false);
     gameWindow->show();
 

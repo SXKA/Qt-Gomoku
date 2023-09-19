@@ -7,8 +7,8 @@
 #include <QSet>
 #include <QStack>
 
-namespace Gobang {
-enum Stone { empty = -1, black, white };
+namespace Gomoku {
+enum Stone { Black = -1, Empty, White };
 
 class MovesGenerator
 {

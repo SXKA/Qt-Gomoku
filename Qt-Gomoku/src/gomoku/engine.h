@@ -8,36 +8,40 @@
 #include <functional>
 #include <string>
 #include <QCache>
+#include <QList>
 #include <QMessageBox>
 #include <QPair>
 #include <QPoint>
 #include <QSet>
 #include <QStack>
 #include <QString>
-#include <QVector>
 
 #ifdef emit
 #undef emit
 #include "../algorithm/aho_corasick.hpp"
 #endif
 
-namespace Gobang {
-constexpr auto r = 2;
-constexpr auto limitDepth = 10;
+namespace Gomoku {
+constexpr auto R = 3;
+constexpr auto LimitDepth = 12;
 
-enum Score {
-    one = 20,
-    two = 60,
-    three = 720,
-    livingThree = 720,
-    four = 720,
-    livingFour = 4320,
-    five = 50000,
-    maxScore = 10000000,
-    minScore = -maxScore
+enum NodeType {
+    AllNode = -1, PVNode, CutNode
 };
 
-enum State { draw = -1, undecided, win };
+enum Score {
+    One = 20,
+    Two = 60,
+    Three = 720,
+    OpenThrees = 720,
+    Four = 720,
+    OpenFours = 4320,
+    Five = 50000,
+    Max = 10000000,
+    Min = -Max
+};
+
+enum State { Draw = -1, Undecided, Win };
 
 class Engine
 {
@@ -59,7 +63,7 @@ private:
     static const QHash<std::string, Score> shapeScoreHash;
     MovesGenerator movesGenerator;
     aho_corasick::trie trie;
-    zobrist::TranslationTable translationTable;
+    Zobrist::TranslationTable translationTable;
     QStack<QPoint> record;
     QPoint bestPoint;
     std::array<std::array<Stone, 15>, 15> board;
@@ -71,8 +75,7 @@ private:
     int calculateScore(const QPoint &point);
     int dScore(const QPoint &point, const int &dx, const int &dy);
     int evaluate(const Stone &stone) const;
-    int negamax(const Stone &stone, const int &depth, int alpha = minScore,
-                const int &beta = maxScore - 1);
+    int pvs(const Stone &stone, int alpha, const int &beta, const int &depth, const NodeType &nodeType);
 };
 }
 #endif

@@ -1,6 +1,6 @@
 #include  "TranslationTable.h"
 
-using namespace zobrist;
+using namespace Zobrist;
 
 TranslationTable::TranslationTable() : TranslationTable(65536)
 {
@@ -28,7 +28,7 @@ void TranslationTable::insert(const unsigned long long &hashKey, const hashEntry
 {
     auto &entry = hashTable[hashKey & (hashTable.size() - 1)];
 
-    if (entry.type == hashEntry::empty && entry.depth <= depth) {
+    if (entry.type == hashEntry::Empty && entry.depth <= depth) {
         entry.checkSum = hashKey;
         entry.type = type;
         entry.depth = depth;
@@ -40,7 +40,7 @@ bool TranslationTable::contains(const unsigned long long &hashKey, const int &de
 {
     auto &entry = hashTable[hashKey & (hashTable.size() - 1)];
 
-    return entry.type != hashEntry::empty && entry.checkSum == hashKey && entry.depth >= depth;
+    return entry.type != hashEntry::Empty && entry.checkSum == hashKey && entry.depth >= depth;
 }
 
 unsigned long long TranslationTable::hash() const

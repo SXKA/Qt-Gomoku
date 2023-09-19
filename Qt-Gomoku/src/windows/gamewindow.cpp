@@ -1,7 +1,7 @@
 #include "gamewindow.h"
 
 GameWindow::GameWindow(QWidget *parent)
-    : QMainWindow(parent), playerStone(Gobang::black), gameOver(false), gameType(AI)
+    : QMainWindow(parent), playerStone(Gomoku::Black), gameOver(false), gameType(AI)
 {
     ui.setupUi(this);
     watcher.setFuture(future);
@@ -27,7 +27,7 @@ void GameWindow::mouseReleaseEvent(QMouseEvent *event)
         return;
     }
 
-    if (Gobang::Engine::isLegal(move) && engine.checkStone(move) == Gobang::empty) {
+    if (Gomoku::Engine::isLegal(move) && engine.checkStone(move) == Gomoku::Empty) {
         engine.move(move, playerStone);
     } else {
         return;
@@ -50,7 +50,7 @@ void GameWindow::mouseReleaseEvent(QMouseEvent *event)
         setUpdatesEnabled(false);
 
         future = QtConcurrent::run([ &, this]() {
-            const auto aiStone = static_cast<const Gobang::Stone>(!playerStone);
+            const auto aiStone = static_cast<const Gomoku::Stone>(-playerStone);
 
             engine.move(engine.bestMove(aiStone), aiStone);
 
@@ -59,7 +59,7 @@ void GameWindow::mouseReleaseEvent(QMouseEvent *event)
 
         watcher.setFuture(future);
     } else {
-        playerStone = static_cast<const Gobang::Stone>(!playerStone);
+        playerStone = static_cast<const Gomoku::Stone>(-playerStone);
     }
 }
 
@@ -112,12 +112,12 @@ void GameWindow::paintEvent(QPaintEvent *event)
 
     for (int i = 0; i < 15; ++i) {
         for (int j = 0; j < 15; ++j) {
-            if (engine.checkStone(QPoint(i, j)) == Gobang::black) {
+            if (engine.checkStone(QPoint(i, j)) == Gomoku::Black) {
                 brush.setColor(Qt::black);
 
                 painter.setBrush(brush);
                 painter.drawEllipse(QPoint((j + 1) * 40, (i + 1) * 40 + 20), 18, 18);
-            } else if (engine.checkStone(QPoint(i, j)) == Gobang::white) {
+            } else if (engine.checkStone(QPoint(i, j)) == Gomoku::White) {
                 brush.setColor(Qt::white);
 
                 painter.setPen(Qt::NoPen);
@@ -165,13 +165,13 @@ void GameWindow::paintEvent(QPaintEvent *event)
     }
 }
 
-void GameWindow::setGame(const Gobang::Stone &stone, const bool &type)
+void GameWindow::setGame(const Gomoku::Stone &stone, const bool &type)
 {
     playerStone = stone;
     gameType = type;
 
-    if (playerStone == Gobang::white && gameType == AI) {
-        engine.move(QPoint(7, 7), Gobang::black);
+    if (playerStone == Gomoku::White && gameType == AI) {
+        engine.move(QPoint(7, 7), Gomoku::Black);
 
         last = engine.lastStone();
     }
@@ -185,7 +185,7 @@ void GameWindow::on_async_finished()
     setUpdatesEnabled(true);
     repaint();
 
-    if (engine.gameOver(last, static_cast<const Gobang::Stone>(!playerStone))) {
+    if (engine.gameOver(last, static_cast<const Gomoku::Stone>(-playerStone))) {
         gameOver = true;
     }
 }
@@ -200,7 +200,7 @@ void GameWindow::on_undo_triggered()
     } else {
         engine.undo(1);
 
-        playerStone = static_cast<const Gobang::Stone>(!playerStone);
+        playerStone = static_cast<const Gomoku::Stone>(-playerStone);
     }
 
     last = engine.lastStone();
@@ -221,9 +221,9 @@ void GameWindow::on_newGame_triggered()
     if (gameType == AI) {
         if (QMessageBox::question(nullptr, "Stone", "Black? ", QMessageBox::Yes | QMessageBox::No,
                                   QMessageBox::NoButton) == QMessageBox::Yes) {
-            playerStone = Gobang::black;
+            playerStone = Gomoku::Black;
         } else {
-            playerStone = Gobang::white;
+            playerStone = Gomoku::White;
         }
     }
 

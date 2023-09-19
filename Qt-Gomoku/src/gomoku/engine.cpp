@@ -1,17 +1,17 @@
 #include "engine.h"
 
-using namespace Gobang;
+using namespace Gomoku;
 
 QCache<std::string, int> Engine::largeCache = QCache<std::string, int>(16777216);
 QCache<std::string, int> Engine::smallCache = QCache<std::string, int>(65536);
 
 const QHash<std::string, Score> Engine::shapeScoreHash = {
-    {"001000", one}, {"000100", one},
-    {"010100", two}, {"001010", two}, {"001100", two},
-    {"011100", three}, {"001110", three}, {"010110", three}, {"011010", three},
-    {"11110", four}, {"01111", four}, {"10111", four}, {"11011", four}, {"11101", four},
-    {"011110", livingFour},
-    {"11111", five}
+    {"001000", One}, {"000100", One},
+    {"010100", Two}, {"001010", Two}, {"001100", Two},
+    {"011100", Three}, {"001110", Three}, {"010110", Three}, {"011010", Three},
+    {"11110", Four}, {"01111", Four}, {"10111", Four}, {"11011", Four}, {"11101", Four},
+    {"011110", OpenFours},
+    {"11111", Five}
 };
 
 inline bool operator< (const QPoint &lhs, const QPoint &rhs)
@@ -19,15 +19,9 @@ inline bool operator< (const QPoint &lhs, const QPoint &rhs)
     return lhs.y() == rhs.y() ? lhs.x() < rhs.x() : rhs.y() < lhs.y();
 }
 
-Engine::Engine() : movesGenerator(&board), blackScores({}), whiteScores({}), blackTotalScore(0),
-       whiteTotalScore(0)
+Engine::Engine() : movesGenerator(&board), board({}), blackScores({}), whiteScores({}),
+       blackTotalScore(0), whiteTotalScore(0)
 {
-    for (int i = 0; i < 15; ++i) {
-        for (int j = 0; j < 15; ++j) {
-            board[i][j] = empty;
-        }
-    }
-
     trie.only_whole_words();
 
     for (const auto &shapeScore : shapeScoreHash.keys()) {
@@ -58,7 +52,7 @@ void Engine::undo(const int &step)
         movesGenerator.undo(point);
         record.pop();
         translationTable.translate(point, checkStone(point));
-        board[point.x()][point.y()] = empty;
+        board[point.x()][point.y()] = Empty;
 
         updateScore(point);
     }
@@ -66,18 +60,18 @@ void Engine::undo(const int &step)
 
 bool Engine::gameOver(const QPoint &point, const Stone &stone) const
 {
-    QString winner = stone == black ? "Black" : "White";
+    QString winner = stone == Black ? "Black" : "White";
 
     winner.append(" win!");
 
     switch (gameState(point, stone)) {
-    case draw:
+    case Draw:
         QMessageBox::information(nullptr, "Result", "Draw!", QMessageBox::Ok, QMessageBox::NoButton);
 
         return true;
-    case undecided:
+    case Undecided:
         break;
-    case win:
+    case Win:
         QMessageBox::information(nullptr, "Result", winner, QMessageBox::Ok, QMessageBox::NoButton);
 
         return true;
@@ -125,25 +119,25 @@ State Engine::gameState(const QPoint &point, const Stone &stone) const
             }
         }
 
-        if (count >= 5) {
-            return win;
+        if (count == 5) {
+            return Win;
         }
     }
 
     for (const auto &row : board) {
         if (std::any_of(row.cbegin(), row.cend(), [](const auto & x) {
-        return x == empty;
+        return x == Empty;
     })) {
-            return undecided;
+            return Undecided;
         }
     }
 
-    return draw;
+    return Draw;
 }
 
 QPoint Engine::bestMove(const Stone &stone)
 {
-    const auto score = negamax(stone, limitDepth);
+    const auto score = pvs(stone, Min, Max - 1, LimitDepth, PVNode);
 
     qInfo() << "Score: " << score;
 
@@ -161,17 +155,17 @@ void Engine::updateScore(const QPoint &point)
     std::array<std::string, 4> whiteLines;
     auto insertToLine = [this, &blackLines, &whiteLines](const auto & i, const auto & p) {
         switch (checkStone(p)) {
-        case empty:
+        case Empty:
             blackLines[i].push_back('0');
             whiteLines[i].push_back('0');
 
             break;
-        case black:
+        case Black:
             blackLines[i].push_back('1');
             whiteLines[i].push_back(' ');
 
             break;
-        case white:
+        case White:
             blackLines[i].push_back(' ');
             whiteLines[i].push_back('1');
 
@@ -282,41 +276,36 @@ int Engine::calculateScore(const QPoint &point)
 
 int Engine::dScore(const QPoint &point, const int &dx, const int &dy)
 {
-    std::string blackLine;
-    std::string whiteLine;
+    std::string blackLine(10, ' ');
+    std::string whiteLine(10, ' ');
     int score = 0;
 
     for (int i = -5; i <= 5; ++i) {
         auto neighborhood = QPoint(point.x() + dx * i, point.y() + dy * i);
 
         if (!isLegal(neighborhood)) {
-            blackLine.push_back(' ');
-            whiteLine.push_back(' ');
-
             continue;
         }
 
         if (neighborhood == point) {
-            blackLine.push_back('1');
-            whiteLine.push_back('1');
+            blackLine[i + 5] = '1';
+            whiteLine[i + 5] = '1';
 
             continue;
         }
 
         switch (checkStone(neighborhood)) {
-        case empty:
-            blackLine.push_back('0');
-            whiteLine.push_back('0');
+        case Empty:
+            blackLine[i + 5] = '0';
+            whiteLine[i + 5] = '0';
 
             break;
-        case black:
-            blackLine.push_back('1');
-            whiteLine.push_back(' ');
+        case Black:
+            blackLine[i + 5] = '1';
 
             break;
-        case white:
-            blackLine.push_back(' ');
-            whiteLine.push_back('1');
+        case White:
+            whiteLine[i + 5] = '1';
 
             break;
         }
@@ -329,7 +318,8 @@ int Engine::dScore(const QPoint &point, const int &dx, const int &dy)
         const auto shapes = trie.parse_text(blackLine);
 
         for (const auto &shape : shapes) {
-            *accumulateScore += std::max(*accumulateScore, static_cast<int>(shapeScoreHash[shape.get_keyword()]));
+            *accumulateScore += std::max(*accumulateScore,
+                                         static_cast<int>(shapeScoreHash[shape.get_keyword()]));
         }
 
         smallCache.insert(blackLine, accumulateScore);
@@ -344,7 +334,8 @@ int Engine::dScore(const QPoint &point, const int &dx, const int &dy)
         const auto shapes = trie.parse_text(whiteLine);
 
         for (const auto &shape : shapes) {
-            *accumulateScore += std::max(*accumulateScore, static_cast<int>(shapeScoreHash[shape.get_keyword()]));
+            *accumulateScore += std::max(*accumulateScore,
+                                         static_cast<int>(shapeScoreHash[shape.get_keyword()]));
         }
 
         smallCache.insert(whiteLine, accumulateScore);
@@ -358,28 +349,29 @@ int Engine::dScore(const QPoint &point, const int &dx, const int &dy)
 
 int Engine::evaluate(const Stone &stone) const
 {
-    return stone == black ? blackTotalScore : whiteTotalScore;
+    return stone == Black ? blackTotalScore : whiteTotalScore;
 }
 
-int Engine::negamax(const Stone &stone, const int &depth, int alpha, const int &beta)
+int Engine::pvs(const Stone &stone, int alpha, const int &beta, const int &depth,
+                const NodeType &nodeType)
 {
-    if (depth != limitDepth && translationTable.contains(translationTable.hash(), depth)) {
+    if (depth != LimitDepth && translationTable.contains(translationTable.hash(), depth)) {
         const auto &entry = translationTable.at(translationTable.hash());
 
         switch (entry.type) {
-        case zobrist::hashEntry::empty:
+        case Zobrist::hashEntry::Empty:
             qWarning() << "Hashing error!";
 
             break;
-        case zobrist::hashEntry::exact:
+        case Zobrist::hashEntry::Exact:
             return entry.score;
-        case zobrist::hashEntry::beta:
+        case Zobrist::hashEntry::UpperBound:
             if (entry.score >= beta) {
                 return beta;
             }
 
             break;
-        case zobrist::hashEntry::alpha:
+        case Zobrist::hashEntry::LowBound:
             if (entry.score <= alpha) {
                 return alpha;
             }
@@ -389,34 +381,36 @@ int Engine::negamax(const Stone &stone, const int &depth, int alpha, const int &
     }
 
     const auto &firstScore = evaluate(stone);
-    const auto &secondScore = evaluate(static_cast<const Stone>(!stone));
+    const auto &secondScore = evaluate(static_cast<const Stone>(-stone));
 
-    if (firstScore >= five) {
-        return maxScore - 1000 - (limitDepth - depth);
+    if (firstScore >= Five) {
+        return Max - 1000 - (LimitDepth - depth);
     }
 
-    if (secondScore >= five) {
-        return minScore + 1000 + (limitDepth - depth);
+    if (secondScore >= Five) {
+        return Min + 1000 + (LimitDepth - depth);
     }
 
     if (depth <= 0 || movesGenerator.empty()) {
         const auto score = firstScore - secondScore;
 
-        translationTable.insert(translationTable.hash(), zobrist::hashEntry::exact, depth, score);
+        translationTable.insert(translationTable.hash(), Zobrist::hashEntry::Exact, depth, score);
 
         return score;
     }
 
-    const auto vacancyScore = -negamax(static_cast<const Stone>(!stone), depth - 1 - r, -beta,
-                                       -beta + 1);
+    if (nodeType != PVNode) {
+        const auto score = -pvs(static_cast<const Stone>(-stone), -beta, -beta + 1, depth - R - 1,
+                                nodeType);
 
-    if (vacancyScore >= beta) {
-        translationTable.insert(translationTable.hash(), zobrist::hashEntry::beta, depth, beta);
+        if (score >= beta) {
+            translationTable.insert(translationTable.hash(), Zobrist::hashEntry::UpperBound, depth, score);
 
-        return beta;
+            return score;
+        }
     }
 
-    QVector<QPair<int, QPoint>> candidates;
+    QList<QPair<int, QPoint>> candidates;
     const auto &moves = movesGenerator.generate();
 
     for (const auto &move : moves) {
@@ -425,37 +419,76 @@ int Engine::negamax(const Stone &stone, const int &depth, int alpha, const int &
 
     std::sort(candidates.begin(), candidates.end(), std::greater<>());
 
-    if (const int limit = 12 - (((limitDepth - depth) >> 1) << 1); candidates.size() > limit) {
+    if (const int limit = 13 - (((LimitDepth - depth) >> 1) << 1); candidates.size() > limit) {
         candidates.resize(limit);
     }
 
-    auto valueType = zobrist::hashEntry::alpha;
+    if (depth == LimitDepth) {
+        bestPoint = candidates.front().second;
+    }
+
+    move(candidates.front().second, stone);
+
+    auto bestScore = -pvs(static_cast<const Stone>(-stone), -beta, -alpha, depth - 1,
+                          static_cast<const NodeType>(-nodeType));
+
+    undo(1);
+
+    if (bestScore >= beta) {
+        translationTable.insert(translationTable.hash(), Zobrist::hashEntry::UpperBound, depth, bestScore);
+
+        return bestScore;
+    }
+
+    candidates.pop_front();
+
+    auto valueType = Zobrist::hashEntry::LowBound;
 
     for (const auto& [score, candidate] : candidates) {
+        alpha = std::max(alpha, bestScore);
+
         move(candidate, stone);
 
-        const auto candidateScore = -negamax(static_cast<const Stone>(!stone), depth - 1, -beta, -alpha);
+        auto candidateScore = -pvs(static_cast<const Stone>(-stone), -alpha - 1, -alpha, depth - 1,
+                                   nodeType == CutNode ? AllNode : CutNode);
 
         undo(1);
 
-        if (candidateScore >= beta) {
-            translationTable.insert(translationTable.hash(), zobrist::hashEntry::beta, depth, beta);
-
-            return beta;
-        }
-
-        if (candidateScore > alpha) {
-            if (depth == limitDepth) {
-                bestPoint = candidate;
+        if (candidateScore > alpha && candidateScore < beta || candidateScore == beta && beta == alpha + 1
+                && nodeType == PVNode) {
+            if (candidateScore == alpha + 1) {
+                candidateScore = alpha;
             }
 
-            alpha = candidateScore;
+            move(candidate, stone);
 
-            valueType = zobrist::hashEntry::exact;
+            candidateScore = -pvs(static_cast<const Stone>(-stone), -beta, -candidateScore, depth - 1,
+                                  nodeType);
+
+            undo(1);
+        }
+
+        if (candidateScore > bestScore) {
+            bestScore = candidateScore;
+
+            if (bestScore >= beta) {
+                translationTable.insert(translationTable.hash(), Zobrist::hashEntry::UpperBound, depth, bestScore);
+
+                return bestScore;
+            }
+
+            if (depth == LimitDepth) {
+                bestPoint = candidate;
+            }
+            valueType = Zobrist::hashEntry::Exact;
         }
     }
 
-    translationTable.insert(translationTable.hash(), valueType, depth, alpha);
+    if (nodeType == CutNode && bestScore == alpha) {
+        return bestScore;
+    }
 
-    return alpha;
+    translationTable.insert(translationTable.hash(), valueType, depth, bestScore);
+
+    return bestScore;
 }

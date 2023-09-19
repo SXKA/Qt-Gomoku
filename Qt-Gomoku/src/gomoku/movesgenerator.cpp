@@ -2,9 +2,9 @@
 
 #include "engine.h"
 
-using namespace Gobang;
+using namespace Gomoku;
 
-MovesGenerator::MovesGenerator(std::array<std::array<Stone, 15>, 15>* board) : board(board) {}
+MovesGenerator::MovesGenerator(std::array<std::array<Stone, 15>, 15> *board) : board(board) {}
 
 void MovesGenerator::move(const QPoint &point)
 {
@@ -17,7 +17,7 @@ void MovesGenerator::move(const QPoint &point)
         for (int j = 0; j < 2; ++j) {
             auto neighborhood = point + QPoint(d[j] * dx[i], d[j] * dy[i]);
 
-            if (Engine::isLegal(neighborhood) && (*board)[neighborhood.x()][neighborhood.y()] == Stone::empty) {
+            if (Engine::isLegal(neighborhood) && (*board)[neighborhood.x()][neighborhood.y()] == Stone::Empty) {
                 const auto size = moves.count();
 
                 moves.insert(neighborhood);
@@ -38,7 +38,7 @@ void MovesGenerator::move(const QPoint &point)
     history.emplaceBack(hist, removedPoint);
 }
 
-void Gobang::MovesGenerator::undo(const QPoint &point)
+void Gomoku::MovesGenerator::undo(const QPoint &point)
 {
     const auto &hist = history.top();
 
@@ -53,12 +53,12 @@ void Gobang::MovesGenerator::undo(const QPoint &point)
     history.pop();
 }
 
-bool Gobang::MovesGenerator::empty() const
+bool Gomoku::MovesGenerator::empty() const
 {
     return moves.empty();
 }
 
-QSet<QPoint> Gobang::MovesGenerator::generate() const
+QSet<QPoint> Gomoku::MovesGenerator::generate() const
 {
     return moves;
 }
