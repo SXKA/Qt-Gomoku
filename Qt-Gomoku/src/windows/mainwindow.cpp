@@ -6,7 +6,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui_.setupUi(this);
 }
 
-void MainWindow::on_ai_released()
+void MainWindow::on_pvc_released()
 {
     Gomoku::Stone playerStone;
 
@@ -34,7 +34,7 @@ void MainWindow::on_exit_released()
     this->close();
 }
 
-void MainWindow::on_player_released()
+void MainWindow::on_pvp_released()
 {
     auto *gameWindow = new GameWindow;
 

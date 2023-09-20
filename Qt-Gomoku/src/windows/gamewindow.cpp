@@ -1,24 +1,49 @@
 #include "gamewindow.h"
 
 GameWindow::GameWindow(QWidget *parent)
-    : QMainWindow(parent), playerStone(Gomoku::Black), gameOver(false), gameType(AI)
+    : QMainWindow(parent)
+    , playerStone(Gomoku::Black)
+    , step(0)
+    , gameOver(false)
+    , gameType(AI)
 {
     ui.setupUi(this);
-    watcher.setFuture(future);
 
+    connect(qApp, &QApplication::aboutToQuit, &watcher, &QFutureWatcher<void>::waitForFinished);
     connect(&watcher, &QFutureWatcher<void>::finished, this, &GameWindow::on_async_finished);
+    connect(this, &GameWindow::on_newGame_released, &watcher, &QFutureWatcher<void>::waitForFinished);
 }
 
 void GameWindow::mouseMoveEvent(QMouseEvent *event)
 {
-    move.setX((event->pos().y() - 40) / 40);
-    move.setY((event->pos().x() - 20) / 40);
+    const auto x = event->pos().x();
+    const auto y = event->pos().y();
+
+    move.setX((y - 40) / 40);
+    move.setY((x - 20) / 40);
+
+    if (x < 20 || x > 620 || y < 30 || y > 630) {
+        setCursor(Qt::ArrowCursor);
+    } else {
+        if (engine.checkStone(move) == Gomoku::Empty) {
+            setCursor(Qt::PointingHandCursor);
+        } else {
+            setCursor(Qt::ArrowCursor);
+        }
+    }
 
     update();
 }
 
 void GameWindow::mouseReleaseEvent(QMouseEvent *event)
 {
+    const auto x = event->pos().x();
+    const auto y = event->pos().y();
+
+    if (x < 20 || x > 620 || y < 30 || y > 630) {
+        return;
+    }
+
     if (future.isValid() && future.isRunning()) {
         return;
     }
@@ -33,7 +58,9 @@ void GameWindow::mouseReleaseEvent(QMouseEvent *event)
         return;
     }
 
+    ui.undo->setEnabled(true);
     last = engine.lastStone();
+    ++step;
 
     repaint();
 
@@ -44,9 +71,9 @@ void GameWindow::mouseReleaseEvent(QMouseEvent *event)
     }
 
     if (gameType == AI) {
-        ui.menu->setDisabled(true);
-        ui.menuBar->setDisabled(true);
+        ui.undo->setDisabled(true);
 
+        repaint();
         setUpdatesEnabled(false);
 
         future = QtConcurrent::run([ &, this]() {
@@ -179,8 +206,7 @@ void GameWindow::setGame(const Gomoku::Stone &stone, const bool &type)
 
 void GameWindow::on_async_finished()
 {
-    ui.menu->setEnabled(true);
-    ui.menuBar->setEnabled(true);
+    ui.undo->setEnabled(true);
 
     setUpdatesEnabled(true);
     repaint();
@@ -190,31 +216,12 @@ void GameWindow::on_async_finished()
     }
 }
 
-
-void GameWindow::on_undo_triggered()
+void GameWindow::on_exit_released()
 {
-    gameOver = false;
-
-    if (gameType == AI) {
-        engine.undo(2);
-    } else {
-        engine.undo(1);
-
-        playerStone = static_cast<const Gomoku::Stone>(-playerStone);
-    }
-
-    last = engine.lastStone();
-
-    update();
+    this->close();
 }
 
-
-void GameWindow::on_exit_triggered() const
-{
-    delete this;
-}
-
-void GameWindow::on_newGame_triggered()
+void GameWindow::on_newGame_released()
 {
     auto *gameWindow = new GameWindow;
 
@@ -232,14 +239,32 @@ void GameWindow::on_newGame_triggered()
     gameWindow->setWindowFlag(Qt::WindowMaximizeButtonHint, false);
     gameWindow->show();
 
-    delete this;
+    this->hide();
+
+    QtConcurrent::run([ &, this ]() {
+        watcher.waitForFinished();
+
+        this->deleteLater();
+    });
 }
 
-void GameWindow::on_menu_aboutToShow() const
+void GameWindow::on_undo_released()
 {
-    if (engine.isInitial(gameType, playerStone)) {
-        ui.undo->setVisible(false);
-    } else {
-        ui.undo->setVisible(true);
+    if (!(--step)) {
+        ui.undo->setDisabled(true);
     }
+
+    gameOver = false;
+
+    if (gameType == AI) {
+        engine.undo(2);
+    } else {
+        engine.undo(1);
+
+        playerStone = static_cast<const Gomoku::Stone>(-playerStone);
+    }
+
+    last = engine.lastStone();
+
+    update();
 }

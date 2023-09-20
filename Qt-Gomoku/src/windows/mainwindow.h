@@ -13,9 +13,9 @@ public:
     MainWindow(QWidget *parent = nullptr);
 
 protected slots:
-    void on_ai_released();
+    void on_pvc_released();
     void on_exit_released();
-    void on_player_released();
+    void on_pvp_released();
 
 private:
     Ui::MainWindowClass ui_;

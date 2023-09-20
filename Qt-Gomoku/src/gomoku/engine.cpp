@@ -14,13 +14,18 @@ const QHash<std::string, Score> Engine::shapeScoreHash = {
     {"11111", Five}
 };
 
-inline bool operator< (const QPoint &lhs, const QPoint &rhs)
+aho_corasick::trie Engine::trie = aho_corasick::trie();
+
+bool operator< (const QPoint &lhs, const QPoint &rhs)
 {
     return lhs.y() == rhs.y() ? lhs.x() < rhs.x() : rhs.y() < lhs.y();
 }
 
-Engine::Engine() : movesGenerator(&board), board({}), blackScores({}), whiteScores({}),
-       blackTotalScore(0), whiteTotalScore(0)
+Engine::Engine()
+    : movesGenerator(&board)
+    , blackTotalScore({0})
+, whiteTotalScore({0})
+, board({})
 {
     trie.only_whole_words();
 
@@ -54,7 +59,7 @@ void Engine::undo(const int &step)
         translationTable.translate(point, checkStone(point));
         board[point.x()][point.y()] = Empty;
 
-        updateScore(point);
+        restoreScore();
     }
 }
 
@@ -78,21 +83,6 @@ bool Engine::gameOver(const QPoint &point, const Stone &stone) const
     }
 
     return false;
-}
-
-bool Engine::isInitial(const bool &type, const Stone &stone) const
-{
-    if (!type) {
-        if (record.empty()) {
-            return true;
-        }
-
-        if (record.size() == 1) {
-            return checkStone(record.top()) != stone;
-        }
-    }
-
-    return record.empty();
 }
 
 Stone Engine::checkStone(const QPoint &point) const
@@ -148,6 +138,13 @@ QPoint Engine::lastStone() const
 {
     return record.empty() ? QPoint() : record.top();
 }
+
+void Engine::restoreScore()
+{
+    blackTotalScore.pop_back();
+    whiteTotalScore.pop_back();
+}
+
 
 void Engine::updateScore(const QPoint &point)
 {
@@ -235,46 +232,40 @@ void Engine::updateScore(const QPoint &point)
         }
     }
 
-    auto offsetIndex = x + 15;
-    auto update = [this](const auto & index, const auto & blackLineScore, const auto & whiteLineScore) {
-        blackTotalScore -= blackScores[index];
-        whiteTotalScore -= whiteScores[index];
-        blackScores[index] = blackLineScore;
-        whiteScores[index] = whiteLineScore;
-        blackTotalScore += blackScores[index];
-        whiteTotalScore += whiteScores[index];
+    blackTotalScore.push_back(blackTotalScore.back());
+    whiteTotalScore.push_back(whiteTotalScore.back());
+
+    auto update = [this](const auto & blackLineScore, const auto & whiteLineScore) {
+        blackTotalScore.back() += blackLineScore;
+        whiteTotalScore.back() += whiteLineScore;
     };
 
-    update(y, blackLineScores[0], whiteLineScores[0]);
-    update(offsetIndex, blackLineScores[1], whiteLineScores[1]);
-
-    offsetIndex = y - x + 40;
+    update(blackLineScores[0], whiteLineScores[0]);
+    update(blackLineScores[1], whiteLineScores[1]);
 
     if (std::abs(y - x) <= 10) {
-        update(offsetIndex, blackLineScores[2], whiteLineScores[2]);
+        update(blackLineScores[2], whiteLineScores[2]);
     }
 
-    offsetIndex = x + y + 47;
-
     if (x + y >= 4 && x + y <= 24) {
-        update(offsetIndex, blackLineScores[3], whiteLineScores[3]);
+        update(blackLineScores[3], whiteLineScores[3]);
     }
 }
 
-int Engine::calculateScore(const QPoint &point)
+int Engine::evaluatePoint(const QPoint &point) const
 {
     int score = 0;
     constexpr std::array<int, 4> dx = {1, 0, 1, 1};
     constexpr std::array<int, 4> dy = {0, 1, 1, -1};
 
     for (int i = 0; i < 4; ++i) {
-        score += dScore(point, dx[i], dy[i]);
+        score += lineScore(point, dx[i], dy[i]);
     }
 
     return score;
 }
 
-int Engine::dScore(const QPoint &point, const int &dx, const int &dy)
+int Engine::lineScore(const QPoint &point, const int &dx, const int &dy) const
 {
     std::string blackLine(10, ' ');
     std::string whiteLine(10, ' ');
@@ -347,9 +338,9 @@ int Engine::dScore(const QPoint &point, const int &dx, const int &dy)
 }
 
 
-int Engine::evaluate(const Stone &stone) const
+inline int Engine::evaluate(const Stone &stone) const
 {
-    return stone == Black ? blackTotalScore : whiteTotalScore;
+    return stone == Black ? blackTotalScore.back() : whiteTotalScore.back();
 }
 
 int Engine::pvs(const Stone &stone, int alpha, const int &beta, const int &depth,
@@ -414,13 +405,13 @@ int Engine::pvs(const Stone &stone, int alpha, const int &beta, const int &depth
     const auto &moves = movesGenerator.generate();
 
     for (const auto &move : moves) {
-        candidates.emplace_back(calculateScore(move), move);
+        candidates.emplace_back(evaluatePoint(move), move);
     }
 
     std::sort(candidates.begin(), candidates.end(), std::greater<>());
 
-    if (const int limit = 13 - (((LimitDepth - depth) >> 1) << 1); candidates.size() > limit) {
-        candidates.resize(limit);
+    if (candidates.size() > 8) {
+        candidates.resize(8);
     }
 
     if (depth == LimitDepth) {

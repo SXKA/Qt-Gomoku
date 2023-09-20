@@ -12,6 +12,10 @@ enum Stone { Black = -1, Empty, White };
 
 class MovesGenerator
 {
+private:
+    QStack<QPair<QSet<QPoint>, QPoint>> history;
+    QSet<QPoint> moves;
+    std::array<std::array<Stone, 15>, 15> *board;
 public:
     MovesGenerator() = delete;
     MovesGenerator(std::array<std::array<Stone, 15>, 15> *board);
@@ -19,10 +23,6 @@ public:
     void undo(const QPoint &point);
     bool empty() const;
     QSet<QPoint> generate() const;
-private:
-    QStack<QPair<QSet<QPoint>, QPoint>> history;
-    QSet<QPoint> moves;
-    std::array<std::array<Stone, 15>, 15> *board;
 };
 }
 #endif

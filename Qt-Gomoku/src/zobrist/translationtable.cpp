@@ -6,7 +6,8 @@ TranslationTable::TranslationTable() : TranslationTable(65536)
 {
 };
 
-TranslationTable::TranslationTable(const int &size) : hashTable(QVarLengthArray<hashEntry>(size))
+TranslationTable::TranslationTable(const int &size)
+    : hashTable(QVarLengthArray<hashEntry>(size))
 {
     std::random_device device;
     std::default_random_engine engine(device());

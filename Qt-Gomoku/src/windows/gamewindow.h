@@ -4,6 +4,7 @@
 #include "../gomoku/engine.h"
 #include "ui_GameWindow.h"
 #include "MainWindow.h"
+#include <QCursor>
 #include <QtEvents>
 #include <QtConcurrent/QtConcurrent>
 #include <QFuture>
@@ -19,7 +20,17 @@
 class GameWindow : public QMainWindow
 {
     Q_OBJECT
-
+private:
+    Ui::GameWindowClass ui;
+    QFutureWatcher<void> watcher;
+    QFuture<void> future;
+    QPoint last;
+    QPoint move;
+    Gomoku::Engine engine;
+    Gomoku::Stone playerStone;
+    int step;
+    bool gameOver;
+    bool gameType;
 public:
     GameWindow(QWidget *parent = nullptr);
     void setGame(const Gomoku::Stone &stone, const bool &type);
@@ -31,21 +42,9 @@ protected:
 
 protected slots:
     void on_async_finished();
-    void on_undo_triggered();
-    void on_exit_triggered() const;
-    void on_newGame_triggered();
-    void on_menu_aboutToShow() const;
-
-private:
-    Ui::GameWindowClass ui;
-    QFutureWatcher<void> watcher;
-    QFuture<void> future;
-    QPoint last;
-    QPoint move;
-    Gomoku::Engine engine;
-    Gomoku::Stone playerStone;
-    bool gameOver;
-    bool gameType;
+    void on_exit_released();
+    void on_newGame_released();
+    void on_undo_released();
 };
 
 #endif
