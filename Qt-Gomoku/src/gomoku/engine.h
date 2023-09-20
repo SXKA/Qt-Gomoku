@@ -22,7 +22,7 @@
 #endif
 
 namespace Gomoku {
-constexpr auto R = 2;
+constexpr auto R = 3;
 constexpr auto LimitDepth = 12;
 
 enum NodeType {
@@ -33,7 +33,6 @@ enum Score {
     One = 20,
     Two = 60,
     Three = 720,
-    OpenThrees = 720,
     Four = 720,
     OpenFours = 4320,
     Five = 50000,
@@ -52,11 +51,13 @@ private:
     static aho_corasick::trie trie;
     MovesGenerator movesGenerator;
     Zobrist::TranslationTable translationTable;
-    QList<int> blackTotalScore;
-    QList<int> whiteTotalScore;
     QStack<QPoint> record;
     QPoint bestPoint;
     std::array<std::array<Stone, 15>, 15> board;
+    std::array<int, 72> blackScores;
+    std::array<int, 72> whiteScores;
+    int blackTotalScore;
+    int whiteTotalScore;
 public:
     Engine();
     [[nodiscard]] static bool isLegal(const QPoint &point);
@@ -69,7 +70,6 @@ public:
     [[nodiscard]] QPoint lastStone() const;
 
 private:
-    void restoreScore();
     void updateScore(const QPoint &point);
     int evaluatePoint(const QPoint &point) const;
     int lineScore(const QPoint &point, const int &dx, const int &dy) const;

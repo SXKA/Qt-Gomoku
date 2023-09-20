@@ -23,9 +23,11 @@ bool operator< (const QPoint &lhs, const QPoint &rhs)
 
 Engine::Engine()
     : movesGenerator(&board)
-    , blackTotalScore({0})
-, whiteTotalScore({0})
-, board({})
+	, board({})
+	, blackScores({})
+	, whiteScores({})
+    , blackTotalScore(0)
+	, whiteTotalScore(0)
 {
     trie.only_whole_words();
 
@@ -59,7 +61,7 @@ void Engine::undo(const int &step)
         translationTable.translate(point, checkStone(point));
         board[point.x()][point.y()] = Empty;
 
-        restoreScore();
+        updateScore(point);
     }
 }
 
@@ -139,12 +141,6 @@ QPoint Engine::lastStone() const
     return record.empty() ? QPoint() : record.top();
 }
 
-void Engine::restoreScore()
-{
-    blackTotalScore.pop_back();
-    whiteTotalScore.pop_back();
-}
-
 
 void Engine::updateScore(const QPoint &point)
 {
@@ -204,51 +200,51 @@ void Engine::updateScore(const QPoint &point)
         if (const auto cacheScore = largeCache[blackLines[i]]) {
             blackLineScores[i] += *cacheScore;
         } else {
-            auto *accumulateScore = new int(blackLineScores[i]);
             const auto shapes = trie.parse_text(blackLines[i]);
 
             for (const auto &shape : shapes) {
                 blackLineScores[i] += shapeScoreHash[shape.get_keyword()];
             }
 
-            *accumulateScore = blackLineScores[i] - *accumulateScore;
-
-            largeCache.insert(blackLines[i], accumulateScore);
+            largeCache.insert(blackLines[i], new int(blackLineScores[i]));
         }
 
         if (const auto cacheScore = largeCache[whiteLines[i]]) {
             whiteLineScores[i] += *cacheScore;
         } else {
-            auto *accumulateScore = new int(whiteLineScores[i]);
             const auto shapes = trie.parse_text(whiteLines[i]);
 
             for (const auto &shape : shapes) {
                 whiteLineScores[i] += shapeScoreHash[shape.get_keyword()];
             }
 
-            *accumulateScore = whiteLineScores[i] - *accumulateScore;
-
-            largeCache.insert(whiteLines[i], accumulateScore);
+            largeCache.insert(whiteLines[i], new int(whiteLineScores[i]));
         }
     }
 
-    blackTotalScore.push_back(blackTotalScore.back());
-    whiteTotalScore.push_back(whiteTotalScore.back());
-
-    auto update = [this](const auto & blackLineScore, const auto & whiteLineScore) {
-        blackTotalScore.back() += blackLineScore;
-        whiteTotalScore.back() += whiteLineScore;
+    auto offsetIndex = x + 15;
+    auto update = [this](const auto & index, const auto & blackLineScore, const auto & whiteLineScore) {
+        blackTotalScore -= blackScores[index];
+        whiteTotalScore -= whiteScores[index];
+        blackScores[index] = blackLineScore;
+        whiteScores[index] = whiteLineScore;
+        blackTotalScore += blackScores[index];
+        whiteTotalScore += whiteScores[index];
     };
 
-    update(blackLineScores[0], whiteLineScores[0]);
-    update(blackLineScores[1], whiteLineScores[1]);
+    update(y, blackLineScores[0], whiteLineScores[0]);
+    update(offsetIndex, blackLineScores[1], whiteLineScores[1]);
+
+    offsetIndex = y - x + 40;
 
     if (std::abs(y - x) <= 10) {
-        update(blackLineScores[2], whiteLineScores[2]);
+        update(offsetIndex, blackLineScores[2], whiteLineScores[2]);
     }
 
+    offsetIndex = x + y + 47;
+
     if (x + y >= 4 && x + y <= 24) {
-        update(blackLineScores[3], whiteLineScores[3]);
+        update(offsetIndex, blackLineScores[3], whiteLineScores[3]);
     }
 }
 
@@ -340,7 +336,7 @@ int Engine::lineScore(const QPoint &point, const int &dx, const int &dy) const
 
 inline int Engine::evaluate(const Stone &stone) const
 {
-    return stone == Black ? blackTotalScore.back() : whiteTotalScore.back();
+    return stone == Black ? blackTotalScore : whiteTotalScore;
 }
 
 int Engine::pvs(const Stone &stone, int alpha, const int &beta, const int &depth,
@@ -410,8 +406,10 @@ int Engine::pvs(const Stone &stone, int alpha, const int &beta, const int &depth
 
     std::sort(candidates.begin(), candidates.end(), std::greater<>());
 
-    if (candidates.size() > 8) {
-        candidates.resize(8);
+    const auto limit = LimitDepth + 1 - (((LimitDepth - depth) >> 1) << 1);
+
+    if (candidates.size() > limit) {
+        candidates.resize(limit);
     }
 
     if (depth == LimitDepth) {
