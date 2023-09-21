@@ -5,7 +5,7 @@ GameWindow::GameWindow(QWidget *parent)
     , playerStone(Gomoku::Black)
     , step(0)
     , gameOver(false)
-    , gameType(AI)
+    , gameType(PVC)
 {
     ui.setupUi(this);
 
@@ -22,7 +22,7 @@ void GameWindow::mouseMoveEvent(QMouseEvent *event)
     move.setX((y - 40) / 40);
     move.setY((x - 20) / 40);
 
-    if (x < 20 || x > 620 || y < 30 || y > 630) {
+    if (x < 20 || x >= 620 || y < 40 || y >= 640) {
         setCursor(Qt::ArrowCursor);
     } else {
         if (engine.checkStone(move) == Gomoku::Empty) {
@@ -37,10 +37,14 @@ void GameWindow::mouseMoveEvent(QMouseEvent *event)
 
 void GameWindow::mouseReleaseEvent(QMouseEvent *event)
 {
+    if (event->button() == Qt::RightButton) {
+	    return;
+    }
+
     const auto x = event->pos().x();
     const auto y = event->pos().y();
 
-    if (x < 20 || x > 620 || y < 30 || y > 630) {
+    if (x < 20 || x >= 620 || y < 30 || y >= 640) {
         return;
     }
 
@@ -52,7 +56,7 @@ void GameWindow::mouseReleaseEvent(QMouseEvent *event)
         return;
     }
 
-    if (Gomoku::Engine::isLegal(move) && engine.checkStone(move) == Gomoku::Empty) {
+    if (engine.checkStone(move) == Gomoku::Empty) {
         engine.move(move, playerStone);
     } else {
         return;
@@ -64,22 +68,38 @@ void GameWindow::mouseReleaseEvent(QMouseEvent *event)
 
     repaint();
 
-    if (engine.gameOver(last, playerStone)) {
+    const auto gameState = engine.gameState(move, playerStone);
+
+    if (gameState == Gomoku::Draw || gameState == Gomoku::Win) {
         gameOver = true;
+
+        if (gameState == Gomoku::Draw) {
+	        QMessageBox::information(nullptr, "Result", "Draw!", QMessageBox::Ok, QMessageBox::NoButton);
+        } else {
+            QString winner = playerStone == Gomoku::Black ? "Black" : "White";
+
+			winner.append(" win!");
+
+	        QMessageBox::information(nullptr, "Result", winner, QMessageBox::Ok, QMessageBox::NoButton);
+        }
+
+        if (gameType == PVP) {
+			playerStone = static_cast<const Gomoku::Stone>(-playerStone);
+        }
 
         return;
     }
 
-    if (gameType == AI) {
+    if (gameType == PVC) {
         ui.undo->setDisabled(true);
 
         repaint();
         setUpdatesEnabled(false);
 
         future = QtConcurrent::run([ &, this]() {
-            const auto aiStone = static_cast<const Gomoku::Stone>(-playerStone);
+            const auto stone = static_cast<const Gomoku::Stone>(-playerStone);
 
-            engine.move(engine.bestMove(aiStone), aiStone);
+            engine.move(engine.bestMove(stone), stone);
 
             last = engine.lastStone();
         });
@@ -197,7 +217,7 @@ void GameWindow::setGame(const Gomoku::Stone &stone, const bool &type)
     playerStone = stone;
     gameType = type;
 
-    if (playerStone == Gomoku::White && gameType == AI) {
+    if (playerStone == Gomoku::White && gameType == PVC) {
         engine.move(QPoint(7, 7), Gomoku::Black);
 
         last = engine.lastStone();
@@ -211,8 +231,21 @@ void GameWindow::on_async_finished()
     setUpdatesEnabled(true);
     repaint();
 
-    if (engine.gameOver(last, static_cast<const Gomoku::Stone>(-playerStone))) {
+    const auto stone = static_cast<const Gomoku::Stone>(-playerStone);
+    const auto gameState = engine.gameState(engine.lastStone(), stone);
+
+    if (gameState == Gomoku::Draw || gameState == Gomoku::Win) {
         gameOver = true;
+
+        if (gameState == Gomoku::Draw) {
+	        QMessageBox::information(nullptr, "Result", "Draw!", QMessageBox::Ok, QMessageBox::NoButton);
+        } else {
+            QString winner = stone == Gomoku::Black ? "Black" : "White";
+
+			winner.append(" win!");
+
+	        QMessageBox::information(nullptr, "Result", winner, QMessageBox::Ok, QMessageBox::NoButton);
+        }
     }
 }
 
@@ -225,11 +258,11 @@ void GameWindow::on_newGame_released()
 {
     auto *gameWindow = new GameWindow;
 
-    if (gameType == AI) {
+    playerStone = Gomoku::Black;
+
+    if (gameType == PVC) {
         if (QMessageBox::question(nullptr, "Stone", "Black? ", QMessageBox::Yes | QMessageBox::No,
-                                  QMessageBox::NoButton) == QMessageBox::Yes) {
-            playerStone = Gomoku::Black;
-        } else {
+                                  QMessageBox::NoButton) == QMessageBox::No) {
             playerStone = Gomoku::White;
         }
     }
@@ -256,7 +289,7 @@ void GameWindow::on_undo_released()
 
     gameOver = false;
 
-    if (gameType == AI) {
+    if (gameType == PVC) {
         engine.undo(2);
     } else {
         engine.undo(1);

@@ -14,8 +14,8 @@
 #include <QPoint>
 
 
-#define AI false
-#define PLAYER true
+#define PVC false
+#define PVP true
 
 class GameWindow : public QMainWindow
 {

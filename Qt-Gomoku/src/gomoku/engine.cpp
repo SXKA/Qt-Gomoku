@@ -16,7 +16,7 @@ const QHash<std::string, Score> Engine::shapeScoreHash = {
 
 aho_corasick::trie Engine::trie = aho_corasick::trie();
 
-bool operator< (const QPoint &lhs, const QPoint &rhs)
+inline bool operator< (const QPoint &lhs, const QPoint &rhs)
 {
     return lhs.y() == rhs.y() ? lhs.x() < rhs.x() : rhs.y() < lhs.y();
 }
@@ -26,8 +26,8 @@ Engine::Engine()
 	, board({})
 	, blackScores({})
 	, whiteScores({})
-    , blackTotalScore(0)
-	, whiteTotalScore(0)
+	, blackTotalScore(0)
+    , whiteTotalScore(0)
 {
     trie.only_whole_words();
 
@@ -44,7 +44,11 @@ bool Engine::isLegal(const QPoint &point)
 void Engine::move(const QPoint &point, const Stone &stone)
 {
     movesGenerator.move(point);
-    record.push(point);
+    movesHistory.push(point);
+    blackScoresHistory.push(blackScores);
+    whiteScoresHistory.push(whiteScores);
+    blackTotalScoreHistory.push(blackTotalScore);
+    whiteTotalScoreHistory.push(whiteTotalScore);
     translationTable.translate(point, stone);
     board[point.x()][point.y()] = stone;
 
@@ -54,37 +58,15 @@ void Engine::move(const QPoint &point, const Stone &stone)
 void Engine::undo(const int &step)
 {
     for (int i = 0; i < step; ++i) {
-        auto point = record.top();
+        auto point = movesHistory.top();
 
         movesGenerator.undo(point);
-        record.pop();
+        movesHistory.pop();
         translationTable.translate(point, checkStone(point));
         board[point.x()][point.y()] = Empty;
 
-        updateScore(point);
+        restoreScore();
     }
-}
-
-bool Engine::gameOver(const QPoint &point, const Stone &stone) const
-{
-    QString winner = stone == Black ? "Black" : "White";
-
-    winner.append(" win!");
-
-    switch (gameState(point, stone)) {
-    case Draw:
-        QMessageBox::information(nullptr, "Result", "Draw!", QMessageBox::Ok, QMessageBox::NoButton);
-
-        return true;
-    case Undecided:
-        break;
-    case Win:
-        QMessageBox::information(nullptr, "Result", winner, QMessageBox::Ok, QMessageBox::NoButton);
-
-        return true;
-    }
-
-    return false;
 }
 
 Stone Engine::checkStone(const QPoint &point) const
@@ -111,7 +93,7 @@ State Engine::gameState(const QPoint &point, const Stone &stone) const
             }
         }
 
-        if (count == 5) {
+        if (count >= 5) {
             return Win;
         }
     }
@@ -138,9 +120,21 @@ QPoint Engine::bestMove(const Stone &stone)
 
 QPoint Engine::lastStone() const
 {
-    return record.empty() ? QPoint() : record.top();
+    return movesHistory.empty() ? QPoint() : movesHistory.top();
 }
 
+inline void Engine::restoreScore()
+{
+    blackScores = blackScoresHistory.top();
+    whiteScores = whiteScoresHistory.top();
+    blackTotalScore = blackTotalScoreHistory.top();
+    whiteTotalScore = whiteTotalScoreHistory.top();
+
+    blackScoresHistory.pop();
+    whiteScoresHistory.pop();
+    blackTotalScoreHistory.pop();
+    whiteTotalScoreHistory.pop();
+}
 
 void Engine::updateScore(const QPoint &point)
 {
@@ -248,7 +242,7 @@ void Engine::updateScore(const QPoint &point)
     }
 }
 
-int Engine::evaluatePoint(const QPoint &point) const
+inline int Engine::evaluatePoint(const QPoint &point) const
 {
     int score = 0;
     constexpr std::array<int, 4> dx = {1, 0, 1, 1};

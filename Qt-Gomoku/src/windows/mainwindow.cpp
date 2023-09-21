@@ -21,7 +21,7 @@ void MainWindow::on_pvc_released()
     auto *gameWindow = new GameWindow;
 
     gameWindow->setFixedSize(640, 660);
-    gameWindow->setGame(playerStone, AI);
+    gameWindow->setGame(playerStone, PVC);
     gameWindow->setWindowFlag(Qt::WindowMaximizeButtonHint, false);
     gameWindow->show();
 
@@ -39,7 +39,7 @@ void MainWindow::on_pvp_released()
     auto *gameWindow = new GameWindow;
 
     gameWindow->setFixedSize(640, 660);
-    gameWindow->setGame(Gomoku::Black, PLAYER);
+    gameWindow->setGame(Gomoku::Black, PVP);
     gameWindow->setWindowFlag(Qt::WindowMaximizeButtonHint, false);
     gameWindow->show();
 

@@ -51,7 +51,11 @@ private:
     static aho_corasick::trie trie;
     MovesGenerator movesGenerator;
     Zobrist::TranslationTable translationTable;
-    QStack<QPoint> record;
+    QStack<QPoint> movesHistory;
+    QStack<std::array<int, 72>> blackScoresHistory;
+    QStack<std::array<int, 72>> whiteScoresHistory;
+    QStack<int> blackTotalScoreHistory;
+    QStack<int> whiteTotalScoreHistory;
     QPoint bestPoint;
     std::array<std::array<Stone, 15>, 15> board;
     std::array<int, 72> blackScores;
@@ -63,13 +67,13 @@ public:
     [[nodiscard]] static bool isLegal(const QPoint &point);
     void move(const QPoint &point, const Stone &stone);
     void undo(const int &step);
-    [[nodiscard]] bool gameOver(const QPoint &point, const Stone &stone) const;
     [[nodiscard]] Stone checkStone(const QPoint &point) const;
     [[nodiscard]] State gameState(const QPoint &point, const Stone &stone) const;
     QPoint bestMove(const Stone &stone);
     [[nodiscard]] QPoint lastStone() const;
 
 private:
+    void restoreScore();
     void updateScore(const QPoint &point);
     int evaluatePoint(const QPoint &point) const;
     int lineScore(const QPoint &point, const int &dx, const int &dy) const;
