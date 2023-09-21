@@ -242,7 +242,7 @@ void Engine::updateScore(const QPoint &point)
     }
 }
 
-inline int Engine::evaluatePoint(const QPoint &point) const
+int Engine::evaluatePoint(const QPoint &point) const
 {
     int score = 0;
     constexpr std::array<int, 4> dx = {1, 0, 1, 1};
@@ -299,8 +299,7 @@ int Engine::lineScore(const QPoint &point, const int &dx, const int &dy) const
         const auto shapes = trie.parse_text(blackLine);
 
         for (const auto &shape : shapes) {
-            *accumulateScore += std::max(*accumulateScore,
-                                         static_cast<int>(shapeScoreHash[shape.get_keyword()]));
+            *accumulateScore += shapeScoreHash[shape.get_keyword()];
         }
 
         smallCache.insert(blackLine, accumulateScore);
@@ -315,8 +314,7 @@ int Engine::lineScore(const QPoint &point, const int &dx, const int &dy) const
         const auto shapes = trie.parse_text(whiteLine);
 
         for (const auto &shape : shapes) {
-            *accumulateScore += std::max(*accumulateScore,
-                                         static_cast<int>(shapeScoreHash[shape.get_keyword()]));
+            *accumulateScore += shapeScoreHash[shape.get_keyword()];
         }
 
         smallCache.insert(whiteLine, accumulateScore);
