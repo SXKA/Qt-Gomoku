@@ -1,11 +1,11 @@
 #ifndef MOVESGENERATOR_H
 #define MOVESGENERATOR_H
 
-#include <array>
 #include <QPair>
 #include <QPoint>
 #include <QSet>
 #include <QStack>
+#include <array>
 
 namespace Gomoku {
 enum Stone { Black = -1, Empty, White };

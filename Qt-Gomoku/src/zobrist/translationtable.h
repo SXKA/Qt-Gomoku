@@ -1,10 +1,10 @@
 #ifndef TRANSLATIONTABLE_H
 #define TRANSLATIONTABLE_H
 
-#include <array>
-#include <random>
 #include <QPoint>
 #include <QVarLengthArray>
+#include <array>
+#include <random>
 
 namespace Zobrist {
 struct hashEntry {

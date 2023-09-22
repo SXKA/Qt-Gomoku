@@ -3,10 +3,6 @@
 
 #include "../zobrist/translationtable.h"
 #include "movesgenerator.h"
-#include <array>
-#include <algorithm>
-#include <functional>
-#include <string>
 #include <QCache>
 #include <QList>
 #include <QMessageBox>
@@ -15,6 +11,10 @@
 #include <QSet>
 #include <QStack>
 #include <QString>
+#include <array>
+#include <algorithm>
+#include <functional>
+#include <string>
 
 #ifdef emit
 #undef emit
