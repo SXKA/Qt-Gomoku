@@ -123,9 +123,10 @@ QPoint Engine::bestMove(const Stone &stone)
     const auto elapsedTime = time.msecsTo(QTime::currentTime());
 
     qInfo() << "Score: " << score;
+    qInfo() << "Elapsed time: " << 0.001 * elapsedTime << "s";
     qInfo() << "Node number: " << nodeCount;
     qInfo() << "Node per second: " << nodeCount / (0.001 * elapsedTime);
-    qInfo() << "Time per node:" << static_cast<double>(1000 * elapsedTime) / nodeCount << "ns";
+    qInfo() << "Time per node:" << static_cast<double>(1000 * elapsedTime) / nodeCount << "us";
 
     nodeCount = 0;
 
