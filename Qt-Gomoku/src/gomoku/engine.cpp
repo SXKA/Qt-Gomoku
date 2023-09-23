@@ -125,7 +125,7 @@ QPoint Engine::bestMove(const Stone &stone)
     qInfo() << "Score: " << score;
     qInfo() << "Node number: " << nodeCount;
     qInfo() << "Node per second: " << nodeCount / (0.001 * elapsedTime);
-    qInfo() << "Time per node:" << static_cast<double>(1000 * elapsedTime) / nodeCount << "ns";
+    qInfo() << "Time per node:" << static_cast<double>(1000 * elapsedTime) / nodeCount << "us";
 
     nodeCount = 0;
 
