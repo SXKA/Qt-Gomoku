@@ -36,7 +36,7 @@ void MainWindow::on_exit_released()
 
 void MainWindow::on_pvp_released()
 {
-    auto *gameWindow = new GameWindow;
+    const auto gameWindow = new GameWindow;
 
     gameWindow->setFixedSize(640, 660);
     gameWindow->setGame(Gomoku::Black, PVP);

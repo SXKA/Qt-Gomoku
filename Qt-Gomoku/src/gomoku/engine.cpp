@@ -2,9 +2,9 @@
 
 using namespace Gomoku;
 
+aho_corasick::trie Engine::trie = aho_corasick::trie();
 QCache<std::string, int> Engine::largeCache = QCache<std::string, int>(16777216);
 QCache<std::string, int> Engine::smallCache = QCache<std::string, int>(65536);
-
 const QHash<std::string, Score> Engine::shapeScoreHash = {
     {"001000", One}, {"000100", One},
     {"010100", Two}, {"001010", Two}, {"001100", Two},
@@ -14,8 +14,6 @@ const QHash<std::string, Score> Engine::shapeScoreHash = {
     {"11111", Five}
 };
 
-aho_corasick::trie Engine::trie = aho_corasick::trie();
-
 inline bool operator< (const QPoint &lhs, const QPoint &rhs)
 {
     return lhs.y() == rhs.y() ? lhs.x() < rhs.x() : rhs.y() < lhs.y();
@@ -23,11 +21,12 @@ inline bool operator< (const QPoint &lhs, const QPoint &rhs)
 
 Engine::Engine()
     : movesGenerator(&board)
-	, board({})
-	, blackScores({})
-	, whiteScores({})
-	, blackTotalScore(0)
-    , whiteTotalScore(0)
+    , board({})
+, blackScores({})
+, whiteScores({})
+, blackTotalScore(0)
+, whiteTotalScore(0)
+, nodeCount(0)
 {
     trie.only_whole_words();
 
@@ -111,14 +110,29 @@ State Engine::gameState(const QPoint &point, const Stone &stone) const
 
 QPoint Engine::bestMove(const Stone &stone)
 {
+    const auto last = lastPoint();
+
+    if (movesHistory.empty() || (movesHistory.size() == 1 && last.x() != 7 && last.y() != 7
+                                 && checkStone(last) != stone)) {
+        return {7, 7};
+    }
+
+    const QTime time = QTime::currentTime();
+
     const auto score = pvs(stone, Min, Max - 1, LimitDepth, PVNode);
+    const auto elapsedTime = time.msecsTo(QTime::currentTime());
 
     qInfo() << "Score: " << score;
+    qInfo() << "Node number: " << nodeCount;
+    qInfo() << "Node per second: " << nodeCount / (0.001 * elapsedTime);
+    qInfo() << "Time per node:" << static_cast<double>(1000 * elapsedTime) / nodeCount << "ns";
+
+    nodeCount = 0;
 
     return bestPoint;
 }
 
-QPoint Engine::lastStone() const
+QPoint Engine::lastPoint() const
 {
     return movesHistory.empty() ? QPoint() : movesHistory.top();
 }
@@ -129,7 +143,6 @@ inline void Engine::restoreScore()
     whiteScores = whiteScoresHistory.top();
     blackTotalScore = blackTotalScoreHistory.top();
     whiteTotalScore = whiteTotalScoreHistory.top();
-
     blackScoresHistory.pop();
     whiteScoresHistory.pop();
     blackTotalScoreHistory.pop();
@@ -167,13 +180,13 @@ void Engine::updateScore(const QPoint &point)
         insertToLine(1, QPoint(x, i));
     }
 
-    auto base = std::min(x, y);
+    auto base = qMin(x, y);
 
     for (int i = x - base, j = y - base; i < 15 && j < 15; ++i, ++j) {
         insertToLine(2, QPoint(i, j));
     }
 
-    base = std::min(y, 14 - x);
+    base = qMin(y, 14 - x);
 
     for (int i = x + base, j = y - base; i >= 0 && j < 15; --i, ++j) {
         insertToLine(3, QPoint(i, j));
@@ -231,7 +244,7 @@ void Engine::updateScore(const QPoint &point)
 
     offsetIndex = y - x + 40;
 
-    if (std::abs(y - x) <= 10) {
+    if (qAbs(y - x) <= 10) {
         update(offsetIndex, blackLineScores[2], whiteLineScores[2]);
     }
 
@@ -295,7 +308,7 @@ int Engine::lineScore(const QPoint &point, const int &dx, const int &dy) const
     if (const auto &cacheScore = smallCache[blackLine]) {
         score += *cacheScore;
     } else {
-        auto *accumulateScore = new int(0);
+        const auto accumulateScore = new int(0);
         const auto shapes = trie.parse_text(blackLine);
 
         for (const auto &shape : shapes) {
@@ -310,7 +323,7 @@ int Engine::lineScore(const QPoint &point, const int &dx, const int &dy) const
     if (const auto &cacheScore = smallCache[whiteLine]) {
         score += *cacheScore;
     } else {
-        auto *accumulateScore = new int(0);
+        const auto accumulateScore = new int(0);
         const auto shapes = trie.parse_text(whiteLine);
 
         for (const auto &shape : shapes) {
@@ -334,6 +347,8 @@ inline int Engine::evaluate(const Stone &stone) const
 int Engine::pvs(const Stone &stone, int alpha, const int &beta, const int &depth,
                 const NodeType &nodeType)
 {
+    ++nodeCount;
+
     if (depth != LimitDepth && translationTable.contains(translationTable.hash(), depth)) {
         const auto &entry = translationTable.at(translationTable.hash());
 
@@ -426,7 +441,7 @@ int Engine::pvs(const Stone &stone, int alpha, const int &beta, const int &depth
     auto valueType = Zobrist::hashEntry::LowBound;
 
     for (const auto& [score, candidate] : candidates) {
-        alpha = std::max(alpha, bestScore);
+        alpha = qMax(alpha, bestScore);
 
         move(candidate, stone);
 

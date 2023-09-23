@@ -38,7 +38,7 @@ void GameWindow::mouseMoveEvent(QMouseEvent *event)
 void GameWindow::mouseReleaseEvent(QMouseEvent *event)
 {
     if (event->button() == Qt::RightButton) {
-	    return;
+        return;
     }
 
     const auto x = event->pos().x();
@@ -63,7 +63,7 @@ void GameWindow::mouseReleaseEvent(QMouseEvent *event)
     }
 
     ui.undo->setEnabled(true);
-    last = engine.lastStone();
+    last = engine.lastPoint();
     ++step;
 
     repaint();
@@ -74,17 +74,17 @@ void GameWindow::mouseReleaseEvent(QMouseEvent *event)
         gameOver = true;
 
         if (gameState == Gomoku::Draw) {
-	        QMessageBox::information(nullptr, "Result", "Draw!", QMessageBox::Ok, QMessageBox::NoButton);
+            QMessageBox::information(nullptr, "Result", "Draw!", QMessageBox::Ok, QMessageBox::NoButton);
         } else {
             QString winner = playerStone == Gomoku::Black ? "Black" : "White";
 
-			winner.append(" win!");
+            winner.append(" win!");
 
-	        QMessageBox::information(nullptr, "Result", winner, QMessageBox::Ok, QMessageBox::NoButton);
+            QMessageBox::information(nullptr, "Result", winner, QMessageBox::Ok, QMessageBox::NoButton);
         }
 
         if (gameType == PVP) {
-			playerStone = static_cast<const Gomoku::Stone>(-playerStone);
+            playerStone = static_cast<const Gomoku::Stone>(-playerStone);
         }
 
         return;
@@ -101,7 +101,7 @@ void GameWindow::mouseReleaseEvent(QMouseEvent *event)
 
             engine.move(engine.bestMove(stone), stone);
 
-            last = engine.lastStone();
+            last = engine.lastPoint();
         });
 
         watcher.setFuture(future);
@@ -218,9 +218,9 @@ void GameWindow::setGame(const Gomoku::Stone &stone, const bool &type)
     gameType = type;
 
     if (playerStone == Gomoku::White && gameType == PVC) {
-        engine.move(QPoint(7, 7), Gomoku::Black);
+        engine.move(engine.bestMove(static_cast<const Gomoku::Stone>(-playerStone)), Gomoku::Black);
 
-        last = engine.lastStone();
+        last = engine.lastPoint();
     }
 }
 
@@ -232,19 +232,19 @@ void GameWindow::on_async_finished()
     repaint();
 
     const auto stone = static_cast<const Gomoku::Stone>(-playerStone);
-    const auto gameState = engine.gameState(engine.lastStone(), stone);
+    const auto gameState = engine.gameState(engine.lastPoint(), stone);
 
     if (gameState == Gomoku::Draw || gameState == Gomoku::Win) {
         gameOver = true;
 
         if (gameState == Gomoku::Draw) {
-	        QMessageBox::information(nullptr, "Result", "Draw!", QMessageBox::Ok, QMessageBox::NoButton);
+            QMessageBox::information(nullptr, "Result", "Draw!", QMessageBox::Ok, QMessageBox::NoButton);
         } else {
             QString winner = stone == Gomoku::Black ? "Black" : "White";
 
-			winner.append(" win!");
+            winner.append(" win!");
 
-	        QMessageBox::information(nullptr, "Result", winner, QMessageBox::Ok, QMessageBox::NoButton);
+            QMessageBox::information(nullptr, "Result", winner, QMessageBox::Ok, QMessageBox::NoButton);
         }
     }
 }
@@ -256,7 +256,7 @@ void GameWindow::on_exit_released()
 
 void GameWindow::on_newGame_released()
 {
-    auto *gameWindow = new GameWindow;
+    const auto gameWindow = new GameWindow;
 
     playerStone = Gomoku::Black;
 
@@ -297,7 +297,7 @@ void GameWindow::on_undo_released()
         playerStone = static_cast<const Gomoku::Stone>(-playerStone);
     }
 
-    last = engine.lastStone();
+    last = engine.lastPoint();
 
     update();
 }

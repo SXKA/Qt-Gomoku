@@ -3,6 +3,7 @@
 
 #include "../zobrist/translationtable.h"
 #include "movesgenerator.h"
+#include <QtGlobal>
 #include <QCache>
 #include <QList>
 #include <QMessageBox>
@@ -11,6 +12,7 @@
 #include <QSet>
 #include <QStack>
 #include <QString>
+#include <QTime>
 #include <array>
 #include <algorithm>
 #include <functional>
@@ -45,10 +47,10 @@ enum State { Draw = -1, Undecided, Win };
 class Engine
 {
 private:
+    static aho_corasick::trie trie;
     static QCache<std::string, int> largeCache;
     static QCache<std::string, int> smallCache;
     static const QHash<std::string, Score> shapeScoreHash;
-    static aho_corasick::trie trie;
     MovesGenerator movesGenerator;
     Zobrist::TranslationTable translationTable;
     QStack<QPoint> movesHistory;
@@ -62,6 +64,7 @@ private:
     std::array<int, 72> whiteScores;
     int blackTotalScore;
     int whiteTotalScore;
+    int nodeCount;
 public:
     Engine();
     [[nodiscard]] static bool isLegal(const QPoint &point);
@@ -70,7 +73,7 @@ public:
     [[nodiscard]] Stone checkStone(const QPoint &point) const;
     [[nodiscard]] State gameState(const QPoint &point, const Stone &stone) const;
     QPoint bestMove(const Stone &stone);
-    [[nodiscard]] QPoint lastStone() const;
+    [[nodiscard]] QPoint lastPoint() const;
 
 private:
     void restoreScore();
