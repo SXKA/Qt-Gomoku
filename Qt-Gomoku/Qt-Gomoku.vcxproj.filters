@@ -89,6 +89,9 @@
     <ClInclude Include="src\gomoku\movesgenerator.h">
       <Filter>Header Files\gomoku</Filter>
     </ClInclude>
+    <ClInclude Include="src\gomoku\stone.h">
+      <Filter>Header Files\gomoku</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="src\windows\gamewindow.h">

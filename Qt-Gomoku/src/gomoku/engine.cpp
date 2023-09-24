@@ -26,6 +26,8 @@ Engine::Engine()
 , whiteScores({})
 , blackTotalScore(0)
 , whiteTotalScore(0)
+, cutNodeCount(0)
+, hitNodeCount(0)
 , nodeCount(0)
 {
     trie.only_whole_words();
@@ -118,15 +120,19 @@ QPoint Engine::bestMove(const Stone &stone)
     }
 
     const QTime time = QTime::currentTime();
-
-    const auto score = pvs(stone, Min, Max - 1, LimitDepth, PVNode);
+    const auto score = pvs(stone, Min, Max - 1, LIMIT_DEPTH, PVNode);
     const auto elapsedTime = time.msecsTo(QTime::currentTime());
 
     qInfo() << "Score: " << score;
-    qInfo() << "Node number: " << nodeCount;
+    qInfo() << "Node numbers: " << nodeCount;
+    qInfo() << "Cut node numbers: " << cutNodeCount << " (" << 100 * cutNodeCount / nodeCount << "%)";
+    qInfo() << "Hit node numbers: " << hitNodeCount << " (" << 100 * hitNodeCount / nodeCount << "%)";
+    qInfo() << "Elapsed time: " << 0.001 * elapsedTime << 's';
     qInfo() << "Node per second: " << nodeCount / (0.001 * elapsedTime);
     qInfo() << "Time per node:" << static_cast<double>(1000 * elapsedTime) / nodeCount << "us";
 
+    cutNodeCount = 0;
+    hitNodeCount = 0;
     nodeCount = 0;
 
     return bestPoint;
@@ -349,8 +355,10 @@ int Engine::pvs(const Stone &stone, int alpha, const int &beta, const int &depth
 {
     ++nodeCount;
 
-    if (depth != LimitDepth && translationTable.contains(translationTable.hash(), depth)) {
+    if (depth != LIMIT_DEPTH && translationTable.contains(translationTable.hash(), depth)) {
         const auto &entry = translationTable.at(translationTable.hash());
+
+        ++hitNodeCount;
 
         switch (entry.type) {
         case Zobrist::hashEntry::Empty:
@@ -358,16 +366,17 @@ int Engine::pvs(const Stone &stone, int alpha, const int &beta, const int &depth
 
             break;
         case Zobrist::hashEntry::Exact:
+
             return entry.score;
         case Zobrist::hashEntry::UpperBound:
             if (entry.score >= beta) {
-                return beta;
+                return entry.score;
             }
 
             break;
         case Zobrist::hashEntry::LowBound:
             if (entry.score <= alpha) {
-                return alpha;
+                return entry.score;
             }
 
             break;
@@ -378,11 +387,15 @@ int Engine::pvs(const Stone &stone, int alpha, const int &beta, const int &depth
     const auto &secondScore = evaluate(static_cast<const Stone>(-stone));
 
     if (firstScore >= Five) {
-        return Max - 1000 - (LimitDepth - depth);
+        ++cutNodeCount;
+
+        return Max - 1000 - (LIMIT_DEPTH - depth);
     }
 
     if (secondScore >= Five) {
-        return Min + 1000 + (LimitDepth - depth);
+        ++cutNodeCount;
+
+        return Min + 1000 + (LIMIT_DEPTH - depth);
     }
 
     if (depth <= 0 || movesGenerator.empty()) {
@@ -399,6 +412,7 @@ int Engine::pvs(const Stone &stone, int alpha, const int &beta, const int &depth
 
         if (score >= beta) {
             translationTable.insert(translationTable.hash(), Zobrist::hashEntry::UpperBound, depth, score);
+            ++cutNodeCount;
 
             return score;
         }
@@ -413,13 +427,13 @@ int Engine::pvs(const Stone &stone, int alpha, const int &beta, const int &depth
 
     std::sort(candidates.begin(), candidates.end(), std::greater<>());
 
-    const auto limit = LimitDepth + 1 - (((LimitDepth - depth) >> 1) << 1);
+    const auto limitWidth = (LIMIT_DEPTH >> 1) - ((LIMIT_DEPTH - depth) >> 1) + 1;
 
-    if (candidates.size() > limit) {
-        candidates.resize(limit);
+    if (candidates.size() > limitWidth) {
+        candidates.resize(limitWidth);
     }
 
-    if (depth == LimitDepth) {
+    if (depth == LIMIT_DEPTH) {
         bestPoint = candidates.front().second;
     }
 
@@ -432,6 +446,7 @@ int Engine::pvs(const Stone &stone, int alpha, const int &beta, const int &depth
 
     if (bestScore >= beta) {
         translationTable.insert(translationTable.hash(), Zobrist::hashEntry::UpperBound, depth, bestScore);
+        ++cutNodeCount;
 
         return bestScore;
     }
@@ -469,11 +484,12 @@ int Engine::pvs(const Stone &stone, int alpha, const int &beta, const int &depth
 
             if (bestScore >= beta) {
                 translationTable.insert(translationTable.hash(), Zobrist::hashEntry::UpperBound, depth, bestScore);
+                ++cutNodeCount;
 
                 return bestScore;
             }
 
-            if (depth == LimitDepth) {
+            if (depth == LIMIT_DEPTH) {
                 bestPoint = candidate;
             }
             valueType = Zobrist::hashEntry::Exact;
@@ -481,6 +497,8 @@ int Engine::pvs(const Stone &stone, int alpha, const int &beta, const int &depth
     }
 
     if (nodeType == CutNode && bestScore == alpha) {
+        ++cutNodeCount;
+
         return bestScore;
     }
 

@@ -3,6 +3,7 @@
 
 #include "../zobrist/translationtable.h"
 #include "movesgenerator.h"
+#include "stone.h"
 #include <QtGlobal>
 #include <QCache>
 #include <QList>
@@ -25,7 +26,7 @@
 
 namespace Gomoku {
 constexpr auto R = 3;
-constexpr auto LimitDepth = 12;
+constexpr auto LIMIT_DEPTH = 12;
 
 enum NodeType {
     AllNode = -1, PVNode, CutNode
@@ -64,6 +65,8 @@ private:
     std::array<int, 72> whiteScores;
     int blackTotalScore;
     int whiteTotalScore;
+    int cutNodeCount;
+    int hitNodeCount;
     int nodeCount;
 public:
     Engine();

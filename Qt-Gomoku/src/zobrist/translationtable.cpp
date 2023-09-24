@@ -2,7 +2,7 @@
 
 using namespace Zobrist;
 
-TranslationTable::TranslationTable() : TranslationTable(65536)
+TranslationTable::TranslationTable() : TranslationTable(1048576)
 {
 };
 
@@ -41,7 +41,7 @@ bool TranslationTable::contains(const unsigned long long &hashKey, const int &de
 {
     auto &entry = hashTable[hashKey & (hashTable.size() - 1)];
 
-    return entry.type != hashEntry::Empty && entry.checkSum == hashKey && entry.depth >= depth;
+    return entry.checkSum == hashKey && entry.depth >= depth;
 }
 
 unsigned long long TranslationTable::hash() const
@@ -49,9 +49,9 @@ unsigned long long TranslationTable::hash() const
     return boardHash;
 }
 
-unsigned long long TranslationTable::translate(const QPoint &point, const bool &color)
+unsigned long long TranslationTable::translate(const QPoint &point, const Gomoku::Stone &stone)
 {
-    const auto randomTable = color == false ? blackRandomTable : whiteRandomTable;
+    const auto randomTable = stone == Gomoku::Black ? blackRandomTable : whiteRandomTable;
 
     boardHash ^= randomTable[point.x()][point.y()];
 

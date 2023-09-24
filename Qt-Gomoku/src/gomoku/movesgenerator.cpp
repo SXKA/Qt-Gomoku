@@ -13,9 +13,9 @@ void MovesGenerator::move(const QPoint &point)
     constexpr std::array<int, 4> dx = {1, 0, 1, 1};
     constexpr std::array<int, 4> dy = {0, 1, 1, -1};
 
-    for (int i = 0; i < 4; ++i) {
-        for (int j = 0; j < 2; ++j) {
-            auto neighborhood = point + QPoint(d[j] * dx[i], d[j] * dy[i]);
+    for (int i = 0; i < 2; ++i) {
+        for (int j = 0; j < 4; ++j) {
+            auto neighborhood = point + QPoint(d[i] * dx[j], d[i] * dy[j]);
 
             if (Engine::isLegal(neighborhood) && (*board)[neighborhood.x()][neighborhood.y()] == Stone::Empty) {
                 const auto size = moves.count();

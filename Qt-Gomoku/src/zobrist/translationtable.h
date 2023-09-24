@@ -1,6 +1,7 @@
 #ifndef TRANSLATIONTABLE_H
 #define TRANSLATIONTABLE_H
 
+#include "../gomoku/stone.h"
 #include <QPoint>
 #include <QVarLengthArray>
 #include <array>
@@ -28,7 +29,7 @@ public:
                 const int &score);
     bool contains(const unsigned long long &hashKey, const int &depth) const;
     unsigned long long hash() const;
-    unsigned long long translate(const QPoint &point, const bool &color);
+    unsigned long long translate(const QPoint &point, const Gomoku::Stone &stone);
     hashEntry at(const unsigned long long &hashKey) const;
 };
 }

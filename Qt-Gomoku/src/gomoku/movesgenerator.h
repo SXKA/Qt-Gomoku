@@ -1,6 +1,7 @@
 #ifndef MOVESGENERATOR_H
 #define MOVESGENERATOR_H
 
+#include "stone.h"
 #include <QPair>
 #include <QPoint>
 #include <QSet>
@@ -8,8 +9,6 @@
 #include <array>
 
 namespace Gomoku {
-enum Stone { Black = -1, Empty, White };
-
 class MovesGenerator
 {
 private:
