@@ -9,7 +9,7 @@ Game UI is from https://github.com/Kenny-ting/Chess-Game-2020
 - Written in modern C++.
 - Use async way to call AI to avoid main thread blocking.
 - Introduce null move pruning and PVS.
-- Search depth reaches 12 layers.
+- Searching depth reaches 12 layers.
 ## Homepage
 ![image](https://github.com/SXKA/Qt-Gomoku/blob/master/Qt-Gomoku/resource/picture/mainwindow.png)
 ## Game UI
