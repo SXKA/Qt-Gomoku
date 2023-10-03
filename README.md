@@ -1,6 +1,8 @@
 # Qt-Gomoku
 Game UI is from https://github.com/Kenny-ting/Chess-Game-2020
-## Algorithm reference 
+## Requirements
+- Qt 6.5.2
+## Algorithm references
 - https://github.com/kimlongli/FiveChess
 - https://hci.iwr.uni-heidelberg.de/system/files/private/downloads/1935772097/report_qingyang-cao_enhanced-forward-pruning.pdf
 ## Features
