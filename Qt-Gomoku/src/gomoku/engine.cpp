@@ -114,8 +114,7 @@ QPoint Engine::bestMove(const Stone &stone)
 {
     const auto last = lastPoint();
 
-    if (movesHistory.empty() || (movesHistory.size() == 1 && last.x() != 7 && last.y() != 7
-                                 && checkStone(last) != stone)) {
+    if (movesHistory.empty() || (movesHistory.size() == 1 && last != QPoint(7, 7) && checkStone(last) != stone)) {
         return {7, 7};
     }
 

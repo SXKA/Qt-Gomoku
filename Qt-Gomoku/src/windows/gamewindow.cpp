@@ -11,7 +11,6 @@ GameWindow::GameWindow(QWidget *parent)
 
     connect(qApp, &QApplication::aboutToQuit, &watcher, &QFutureWatcher<void>::waitForFinished);
     connect(&watcher, &QFutureWatcher<void>::finished, this, &GameWindow::on_async_finished);
-    connect(this, &GameWindow::on_newGame_released, &watcher, &QFutureWatcher<void>::waitForFinished);
 }
 
 void GameWindow::mouseMoveEvent(QMouseEvent *event)
@@ -272,13 +271,9 @@ void GameWindow::on_newGame_released()
     gameWindow->setWindowFlag(Qt::WindowMaximizeButtonHint, false);
     gameWindow->show();
 
-    this->hide();
+    watcher.waitForFinished();
 
-    QtConcurrent::run([ &, this ]() {
-        watcher.waitForFinished();
-
-        this->deleteLater();
-    });
+    this->deleteLater();
 }
 
 void GameWindow::on_undo_released()
