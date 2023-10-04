@@ -1,5 +1,5 @@
 # Qt-Gomoku
-Game UI is from https://github.com/Kenny-ting/Chess-Game-2020
+Game UI is from https://github.com/Kenny-ting/Chess-Game-2020, Free-style Gomoku rule.
 ## Requirements
 - Qt 6.5.2
 ## Algorithm references
