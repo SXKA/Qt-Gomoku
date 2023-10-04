@@ -17,7 +17,7 @@ void MovesGenerator::move(const QPoint &point)
         for (int j = 0; j < 4; ++j) {
             auto neighborhood = point + QPoint(d[i] * dx[j], d[i] * dy[j]);
 
-            if (Engine::isLegal(neighborhood) && (*board)[neighborhood.x()][neighborhood.y()] == Stone::Empty) {
+            if (Engine::isLegal(neighborhood) && (*board)[neighborhood.x()][neighborhood.y()] == Empty) {
                 const auto size = moves.count();
 
                 moves.insert(neighborhood);
@@ -38,7 +38,7 @@ void MovesGenerator::move(const QPoint &point)
     history.emplaceBack(hist, removedPoint);
 }
 
-void Gomoku::MovesGenerator::undo(const QPoint &point)
+void MovesGenerator::undo(const QPoint &point)
 {
     const auto &hist = history.top();
 
@@ -53,12 +53,12 @@ void Gomoku::MovesGenerator::undo(const QPoint &point)
     history.pop();
 }
 
-bool Gomoku::MovesGenerator::empty() const
+bool MovesGenerator::empty() const
 {
     return moves.empty();
 }
 
-QSet<QPoint> Gomoku::MovesGenerator::generate() const
+QSet<QPoint> MovesGenerator::generate() const
 {
     return moves;
 }
