@@ -26,7 +26,8 @@
 
 namespace Gomoku {
 constexpr auto R = 3;
-constexpr auto LIMIT_DEPTH = 12;
+constexpr auto LIMIT_DEPTH = 10;
+constexpr auto LIMIT_WIDTH = 8;
 
 enum NodeType {
     AllNode = -1, PVNode, CutNode
@@ -52,7 +53,8 @@ private:
     static QCache<std::string, int> largeCache;
     static QCache<std::string, int> smallCache;
     static const QHash<std::string, Score> shapeScoreHash;
-    MovesGenerator movesGenerator;
+    MovesGenerator generator;
+    MovesGenerator limitedGenerator;
     Zobrist::TranslationTable translationTable;
     QStack<QPoint> movesHistory;
     QStack<std::array<int, 72>> blackScoresHistory;

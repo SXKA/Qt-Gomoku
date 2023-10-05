@@ -4,7 +4,8 @@
 
 using namespace Gomoku;
 
-MovesGenerator::MovesGenerator(std::array<std::array<Stone, 15>, 15> *board) : board(board) {}
+MovesGenerator::MovesGenerator(std::array<std::array<Stone, 15>, 15> *board,
+                               const bool &limited) : board(board), limited(limited) {}
 
 void MovesGenerator::move(const QPoint &point)
 {
@@ -15,15 +16,19 @@ void MovesGenerator::move(const QPoint &point)
 
     for (int i = 0; i < 2; ++i) {
         for (int j = 0; j < 4; ++j) {
-            auto neighborhood = point + QPoint(d[i] * dx[j], d[i] * dy[j]);
+            const auto l = limited ? 1 : 2;
 
-            if (Engine::isLegal(neighborhood) && (*board)[neighborhood.x()][neighborhood.y()] == Empty) {
-                const auto size = moves.count();
+            for (int k = 1; k <= l; ++k) {
+                auto neighborhood = point + QPoint(d[i] * dx[j] * k, d[i] * dy[j] * k);
 
-                moves.insert(neighborhood);
+                if (Engine::isLegal(neighborhood) && (*board)[neighborhood.x()][neighborhood.y()] == Empty) {
+                    const auto size = moves.count();
 
-                if (moves.size() > size) {
-                    hist.insert(neighborhood);
+                    moves.insert(neighborhood);
+
+                    if (moves.size() > size) {
+                        hist.insert(neighborhood);
+                    }
                 }
             }
         }

@@ -20,7 +20,8 @@ inline bool operator< (const QPoint &lhs, const QPoint &rhs)
 }
 
 Engine::Engine()
-    : movesGenerator(&board)
+    : generator(&board)
+    , limitedGenerator(&board, true)
     , board({})
 , blackScores({})
 , whiteScores({})
@@ -44,7 +45,8 @@ bool Engine::isLegal(const QPoint &point)
 
 void Engine::move(const QPoint &point, const Stone &stone)
 {
-    movesGenerator.move(point);
+    limitedGenerator.move(point);
+    generator.move(point);
     movesHistory.push(point);
     blackScoresHistory.push(blackScores);
     whiteScoresHistory.push(whiteScores);
@@ -61,7 +63,8 @@ void Engine::undo(const int &step)
     for (int i = 0; i < step; ++i) {
         auto point = movesHistory.top();
 
-        movesGenerator.undo(point);
+        limitedGenerator.undo(point);
+        generator.undo(point);
         movesHistory.pop();
         translationTable.translate(point, checkStone(point));
         board[point.x()][point.y()] = Empty;
@@ -114,7 +117,8 @@ QPoint Engine::bestMove(const Stone &stone)
 {
     const auto last = lastPoint();
 
-    if (movesHistory.empty() || (movesHistory.size() == 1 && last != QPoint(7, 7) && checkStone(last) != stone)) {
+    if (movesHistory.empty() || (movesHistory.size() == 1 && last != QPoint(7, 7)
+                                 && checkStone(last) != stone)) {
         return {7, 7};
     }
 
@@ -397,7 +401,7 @@ int Engine::pvs(const Stone &stone, int alpha, const int &beta, const int &depth
         return Min + 1000 + (LIMIT_DEPTH - depth);
     }
 
-    if (depth <= 0 || movesGenerator.empty()) {
+    if (depth <= 0 || limitedGenerator.empty()) {
         const auto score = firstScore - secondScore;
 
         translationTable.insert(translationTable.hash(), Zobrist::hashEntry::Exact, depth, score);
@@ -418,18 +422,26 @@ int Engine::pvs(const Stone &stone, int alpha, const int &beta, const int &depth
     }
 
     QList<QPair<int, QPoint>> candidates;
-    const auto &moves = movesGenerator.generate();
+    const auto &limitedMoves = limitedGenerator.generate();
+
+    for (const auto &limitedMove : limitedMoves) {
+        candidates.emplace_back(evaluatePoint(limitedMove), limitedMove);
+    }
+
+    const auto moves = generator.generate() - limitedGenerator.generate();
 
     for (const auto &move : moves) {
-        candidates.emplace_back(evaluatePoint(move), move);
+        const auto score = evaluatePoint(move);
+
+        if (score >= Three << 1) {
+            candidates.emplace_back(score, move);
+        }
     }
 
     std::sort(candidates.begin(), candidates.end(), std::greater<>());
 
-    const auto limitWidth = (LIMIT_DEPTH >> 1) - ((LIMIT_DEPTH - depth) >> 1) + 1;
-
-    if (candidates.size() > limitWidth) {
-        candidates.resize(limitWidth);
+    if (candidates.size() > LIMIT_WIDTH) {
+        candidates.resize(LIMIT_WIDTH);
     }
 
     if (depth == LIMIT_DEPTH) {
