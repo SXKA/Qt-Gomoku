@@ -25,7 +25,7 @@
 #endif
 
 namespace Gomoku {
-constexpr auto R = 3;
+inline auto R = 3;
 constexpr auto LIMIT_DEPTH = 10;
 constexpr auto LIMIT_WIDTH = 8;
 
@@ -86,7 +86,7 @@ private:
     int evaluatePoint(const QPoint &point) const;
     int lineScore(const QPoint &point, const int &dx, const int &dy) const;
     int evaluate(const Stone &stone) const;
-    int pvs(const Stone &stone, int alpha, const int &beta, const int &depth, const NodeType &nodeType);
+    int pvs(const Stone &stone, int alpha, const int &beta, const int &depth, const NodeType &nodeType, const bool& nullOk = true);
 };
 }
 #endif

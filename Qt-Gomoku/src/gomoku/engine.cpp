@@ -23,13 +23,13 @@ Engine::Engine()
     : generator(&board)
     , limitedGenerator(&board, true)
     , board({})
-, blackScores({})
-, whiteScores({})
-, blackTotalScore(0)
-, whiteTotalScore(0)
-, cutNodeCount(0)
-, hitNodeCount(0)
-, nodeCount(0)
+	, blackScores({})
+	, whiteScores({})
+	, blackTotalScore(0)
+	, whiteTotalScore(0)
+	, cutNodeCount(0)
+	, hitNodeCount(0)
+	, nodeCount(0)
 {
     trie.only_whole_words();
 
@@ -354,7 +354,7 @@ inline int Engine::evaluate(const Stone &stone) const
 }
 
 int Engine::pvs(const Stone &stone, int alpha, const int &beta, const int &depth,
-                const NodeType &nodeType)
+                const NodeType &nodeType, const bool& nullOk)
 {
     ++nodeCount;
 
@@ -409,16 +409,18 @@ int Engine::pvs(const Stone &stone, int alpha, const int &beta, const int &depth
         return score;
     }
 
-    if (nodeType != PVNode) {
-        const auto score = -pvs(static_cast<const Stone>(-stone), -beta, -beta + 1, depth - R - 1,
-                                nodeType);
+    if (nodeType != PVNode && nullOk) {
+        R = depth > 6 ? 3 : 2;
 
-        if (score >= beta) {
-            translationTable.insert(translationTable.hash(), Zobrist::hashEntry::UpperBound, depth, score);
-            ++cutNodeCount;
+    	const auto score = -pvs(static_cast<const Stone>(-stone), -beta, -beta + 1, depth - R - 1,
+	                                nodeType, false);
 
-            return score;
-        }
+    	if (score >= beta) {
+    		translationTable.insert(translationTable.hash(), Zobrist::hashEntry::UpperBound, depth, score);
+    		++cutNodeCount;
+
+    		return beta;
+    	}
     }
 
     QList<QPair<int, QPoint>> candidates;
@@ -440,8 +442,10 @@ int Engine::pvs(const Stone &stone, int alpha, const int &beta, const int &depth
 
     std::sort(candidates.begin(), candidates.end(), std::greater<>());
 
-    if (candidates.size() > LIMIT_WIDTH) {
-        candidates.resize(LIMIT_WIDTH);
+    const auto limitWidth = LIMIT_WIDTH - ((LIMIT_WIDTH - depth) >> 1);
+
+    if (candidates.size() > limitWidth) {
+        candidates.resize(limitWidth);
     }
 
     if (depth == LIMIT_DEPTH) {
@@ -503,6 +507,7 @@ int Engine::pvs(const Stone &stone, int alpha, const int &beta, const int &depth
             if (depth == LIMIT_DEPTH) {
                 bestPoint = candidate;
             }
+
             valueType = Zobrist::hashEntry::Exact;
         }
     }
