@@ -122,6 +122,8 @@ QPoint Engine::bestMove(const Stone &stone)
         return {7, 7};
     }
 
+    translationTable.clear();
+
     const QTime time = QTime::currentTime();
     const auto score = pvs(stone, Min, Max, LIMIT_DEPTH, PVNode);
     const auto elapsedTime = time.msecsTo(QTime::currentTime());
@@ -264,24 +266,23 @@ void Engine::updateScore(const QPoint &point)
     }
 }
 
-int Engine::evaluatePoint(const QPoint &point) const
+int Engine::evaluatePoint(const QPoint &point, const Stone &stone) const
 {
     int score = 0;
     constexpr std::array<int, 4> dx = {1, 0, 1, 1};
     constexpr std::array<int, 4> dy = {0, 1, 1, -1};
 
     for (int i = 0; i < 4; ++i) {
-        score += lineScore(point, dx[i], dy[i]);
+        score += lineScore(point, stone, dx[i], dy[i]);
     }
 
     return score;
 }
 
-int Engine::lineScore(const QPoint &point, const int &dx, const int &dy) const
+int Engine::lineScore(const QPoint &point, const Stone &stone, const int &dx, const int &dy) const
 {
     std::string blackLine(10, ' ');
     std::string whiteLine(10, ' ');
-    int score = 0;
 
     for (int i = -5; i <= 5; ++i) {
         auto neighborhood = QPoint(point.x() + dx * i, point.y() + dy * i);
@@ -325,6 +326,8 @@ int Engine::lineScore(const QPoint &point, const int &dx, const int &dy) const
         score += *accumulateScore;
     }
 
+    const auto blackScore = score;
+
     if (const auto &cacheScore = smallCache[whiteLine]) {
         score += *cacheScore;
     } else {
@@ -340,7 +343,9 @@ int Engine::lineScore(const QPoint &point, const int &dx, const int &dy) const
         score += *accumulateScore;
     }
 
-    return score;
+    const auto whiteScore = score - blackScore;
+
+    return stone == Empty ? score : stone == Black ? blackScore : whiteScore;
 }
 
 
@@ -358,15 +363,13 @@ int Engine::pvs(const Stone &stone, int alpha, const int &beta, const int &depth
         const auto &entry = translationTable.at(translationTable.hash());
 
         switch (entry.type) {
-        case Zobrist::hashEntry::Empty:
-            qWarning() << "Hashing error!";
-
+        case Zobrist::HashEntry::Empty:
             break;
         case Zobrist::hashEntry::Exact:
             ++hitNodeCount;
 
             return entry.score;
-        case Zobrist::hashEntry::UpperBound:
+        case Zobrist::HashEntry::UpperBound:
             if (entry.score >= beta) {
                 ++hitNodeCount;
 
@@ -374,7 +377,7 @@ int Engine::pvs(const Stone &stone, int alpha, const int &beta, const int &depth
             }
 
             break;
-        case Zobrist::hashEntry::LowBound:
+        case Zobrist::HashEntry::LowBound:
             if (entry.score <= alpha) {
                 ++hitNodeCount;
 
@@ -391,25 +394,25 @@ int Engine::pvs(const Stone &stone, int alpha, const int &beta, const int &depth
     if (firstScore >= Five) {
         ++cutNodeCount;
 
-        return Max - 1000 - (LIMIT_DEPTH - depth);
+        return Max - (LIMIT_DEPTH - depth);
     }
 
     if (secondScore >= Five) {
         ++cutNodeCount;
 
-        return Min + 1000 + (LIMIT_DEPTH - depth);
+        return Min + (LIMIT_DEPTH - depth);
     }
 
     if (depth <= 0 || limitedGenerator.empty()) {
         const auto score = firstScore - secondScore;
 
-        translationTable.insert(translationTable.hash(), Zobrist::hashEntry::Exact, depth, score);
+        translationTable.insert(translationTable.hash(), Zobrist::HashEntry::Exact, depth, score);
 
         return score;
     }
 
     if (nodeType != PVNode && nullOk) {
-        R = depth > 6 ? 3 : 2;
+        R = depth >= 6 ? 3 : 2;
 
         const auto score = -pvs(static_cast<const Stone>(-stone), -beta, -beta + 1, depth - R - 1,
                                 nodeType, false);
@@ -432,19 +435,15 @@ int Engine::pvs(const Stone &stone, int alpha, const int &beta, const int &depth
     const auto moves = generator.generate() - limitedGenerator.generate();
 
     for (const auto &move : moves) {
-        const auto score = evaluatePoint(move);
-
-        if (score >= Three << 1) {
-            candidates.emplace_back(score, move);
+        if (evaluatePoint(move, stone) >= Three << 1) {
+            candidates.emplace_back(evaluatePoint(move), move);
         }
     }
 
-    std::sort(candidates.begin(), candidates.end(), std::greater<>());
+    std::sort(candidates.begin(), candidates.end(), std::greater());
 
-    const auto limitWidth = LIMIT_WIDTH - ((LIMIT_WIDTH - depth) >> 1);
-
-    if (candidates.size() > limitWidth) {
-        candidates.resize(limitWidth);
+    if (candidates.size() > LIMIT_WIDTH) {
+        candidates.resize(LIMIT_WIDTH);
     }
 
     if (depth == LIMIT_DEPTH) {
@@ -459,7 +458,7 @@ int Engine::pvs(const Stone &stone, int alpha, const int &beta, const int &depth
     undo(1);
 
     if (bestScore >= beta) {
-        translationTable.insert(translationTable.hash(), Zobrist::hashEntry::UpperBound, depth, bestScore);
+        translationTable.insert(translationTable.hash(), Zobrist::HashEntry::UpperBound, depth, bestScore);
         ++cutNodeCount;
 
         return bestScore;
@@ -467,7 +466,7 @@ int Engine::pvs(const Stone &stone, int alpha, const int &beta, const int &depth
 
     candidates.pop_front();
 
-    auto valueType = Zobrist::hashEntry::LowBound;
+    auto valueType = Zobrist::HashEntry::LowBound;
 
     for (const auto& [score, candidate] : candidates) {
         alpha = qMax(alpha, bestScore);
@@ -497,7 +496,7 @@ int Engine::pvs(const Stone &stone, int alpha, const int &beta, const int &depth
             bestScore = candidateScore;
 
             if (bestScore >= beta) {
-                translationTable.insert(translationTable.hash(), Zobrist::hashEntry::UpperBound, depth, bestScore);
+                translationTable.insert(translationTable.hash(), Zobrist::HashEntry::UpperBound, depth, bestScore);
                 ++cutNodeCount;
 
                 return bestScore;
@@ -507,7 +506,7 @@ int Engine::pvs(const Stone &stone, int alpha, const int &beta, const int &depth
                 bestPoint = candidate;
             }
 
-            valueType = Zobrist::hashEntry::Exact;
+            valueType = Zobrist::HashEntry::Exact;
         }
     }
 
