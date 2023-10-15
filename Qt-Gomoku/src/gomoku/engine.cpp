@@ -52,7 +52,7 @@ void Engine::move(const QPoint &point, const Stone &stone)
     whiteScoresHistory.push(whiteScores);
     blackTotalScoreHistory.push(blackTotalScore);
     whiteTotalScoreHistory.push(whiteTotalScore);
-    translationTable.translate(point, stone);
+    translationTable.transpose(point, stone);
     board[point.x()][point.y()] = stone;
 
     updateScore(point);
@@ -66,7 +66,7 @@ void Engine::undo(const int &step)
         limitedGenerator.undo(point);
         generator.undo(point);
         movesHistory.pop();
-        translationTable.translate(point, checkStone(point));
+        translationTable.transpose(point, checkStone(point));
         board[point.x()][point.y()] = Empty;
 
         restoreScore();

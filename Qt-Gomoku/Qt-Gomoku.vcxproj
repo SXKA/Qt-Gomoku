@@ -109,7 +109,7 @@
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\windows\gamewindow.cpp" />
     <ClCompile Include="src\windows\mainwindow.cpp" />
-    <ClCompile Include="src\zobrist\translationtable.cpp" />
+    <ClCompile Include="src\zobrist\transpositiontable.cpp" />
   </ItemGroup>
   <ItemGroup>
     <QtRcc Include="resource\mainwindow.qrc" />
@@ -123,7 +123,7 @@
     <ClInclude Include="src\gomoku\engine.h" />
     <ClInclude Include="src\gomoku\movesgenerator.h" />
     <ClInclude Include="src\gomoku\stone.h" />
-    <ClInclude Include="src\zobrist\translationtable.h" />
+    <ClInclude Include="src\zobrist\transpositiontable.h" />
     <QtMoc Include="src\windows\mainwindow.h" />
     <QtMoc Include="src\windows\gamewindow.h" />
   </ItemGroup>
