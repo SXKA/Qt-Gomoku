@@ -83,10 +83,11 @@ public:
 private:
     void restoreScore();
     void updateScore(const QPoint &point);
-    int evaluatePoint(const QPoint &point) const;
-    int lineScore(const QPoint &point, const int &dx, const int &dy) const;
+    int evaluatePoint(const QPoint &point, const Stone &stone = Empty) const;
+    int lineScore(const QPoint &point, const Stone &stone, const int &dx, const int &dy) const;
     int evaluate(const Stone &stone) const;
-    int pvs(const Stone &stone, int alpha, const int &beta, const int &depth, const NodeType &nodeType, const bool& nullOk = true);
+    int pvs(const Stone &stone, int alpha, const int &beta, const int &depth, const NodeType &nodeType,
+            const bool &nullOk = true);
 };
 }
 #endif

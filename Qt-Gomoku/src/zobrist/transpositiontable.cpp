@@ -7,7 +7,7 @@ TranspositionTable::TranspositionTable() : TranspositionTable(1048576)
 };
 
 TranspositionTable::TranspositionTable(const int &size)
-    : hashTable(QVarLengthArray<hashEntry>(size))
+    : hashTable(QVarLengthArray<HashEntry>(size))
 {
     std::random_device device;
     std::default_random_engine engine(device());
@@ -23,13 +23,20 @@ TranspositionTable::TranspositionTable(const int &size)
     boardHash = distribution(engine);
 }
 
-void TranspositionTable::insert(const unsigned long long &hashKey, const hashEntry::Type &type,
-                              const int &depth,
-                              const int &score)
+void TranspositionTable::clear()
+{
+    for (auto &entry : hashTable) {
+        entry.type = HashEntry::Empty;
+    }
+}
+
+void TranspositionTable::insert(const unsigned long long &hashKey, const HashEntry::Type &type,
+                                const int &depth,
+                                const int &score)
 {
     auto &entry = hashTable[hashKey & (hashTable.size() - 1)];
 
-    if (entry.type == hashEntry::Empty && entry.depth <= depth) {
+    if (entry.type == HashEntry::Empty && entry.depth <= depth) {
         entry.checkSum = hashKey;
         entry.type = type;
         entry.depth = depth;
@@ -58,7 +65,7 @@ unsigned long long TranspositionTable::transpose(const QPoint &point, const Gomo
     return boardHash;
 }
 
-hashEntry TranspositionTable::at(const unsigned long long &hashKey) const
+HashEntry TranspositionTable::at(const unsigned long long &hashKey) const
 {
     return hashTable[hashKey & (hashTable.size() - 1)];
 }
