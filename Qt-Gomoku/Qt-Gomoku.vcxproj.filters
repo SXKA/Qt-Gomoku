@@ -53,14 +53,14 @@
     <ClCompile Include="src\main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\zobrist\translationtable.cpp">
-      <Filter>Source Files\zobrist</Filter>
-    </ClCompile>
     <ClCompile Include="src\gomoku\engine.cpp">
       <Filter>Source Files\gomoku</Filter>
     </ClCompile>
     <ClCompile Include="src\gomoku\movesgenerator.cpp">
       <Filter>Source Files\gomoku</Filter>
+    </ClCompile>
+    <ClCompile Include="src\zobrist\transpositiontable.cpp">
+      <Filter>Source Files\zobrist</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -77,9 +77,6 @@
     </QtUic>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\zobrist\translationtable.h">
-      <Filter>Header Files\zobrist</Filter>
-    </ClInclude>
     <ClInclude Include="src\algorithm\aho_corasick.hpp">
       <Filter>Header Files\algorithm</Filter>
     </ClInclude>
@@ -91,6 +88,9 @@
     </ClInclude>
     <ClInclude Include="src\gomoku\stone.h">
       <Filter>Header Files\gomoku</Filter>
+    </ClInclude>
+    <ClInclude Include="src\zobrist\transpositiontable.h">
+      <Filter>Header Files\zobrist</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

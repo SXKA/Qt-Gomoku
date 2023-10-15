@@ -7,7 +7,7 @@ Game UI is from https://github.com/Kenny-ting/Chess-Game-2020, Free-style Gomoku
 - https://hci.iwr.uni-heidelberg.de/system/files/private/downloads/1935772097/report_qingyang-cao_enhanced-forward-pruning.pdf
 ## Features
 - Written in modern C++.
-- Using async way to call AI to avoid main thread blocking.
+- Using async way to call engine to avoid main thread blocking.
 - Introducing null move pruning and PVS.
 - Searching depth reaches 10 layers.
 ## Homepage
