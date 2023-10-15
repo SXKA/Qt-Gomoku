@@ -1,7 +1,7 @@
 #ifndef GOBANG_H
 #define GOBANG_H
 
-#include "../zobrist/translationtable.h"
+#include "../zobrist/transpositiontable.h"
 #include "movesgenerator.h"
 #include "stone.h"
 #include <QtGlobal>
@@ -55,7 +55,7 @@ private:
     static const QHash<std::string, Score> shapeScoreHash;
     MovesGenerator generator;
     MovesGenerator limitedGenerator;
-    Zobrist::TranslationTable translationTable;
+    Zobrist::TranspositionTable transpositionTable;
     QStack<QPoint> movesHistory;
     QStack<std::array<int, 72>> blackScoresHistory;
     QStack<std::array<int, 72>> whiteScoresHistory;
@@ -86,7 +86,8 @@ private:
     int evaluatePoint(const QPoint &point) const;
     int lineScore(const QPoint &point, const int &dx, const int &dy) const;
     int evaluate(const Stone &stone) const;
-    int pvs(const Stone &stone, int alpha, const int &beta, const int &depth, const NodeType &nodeType, const bool& nullOk = true);
+    int pvs(const Stone &stone, int alpha, const int &beta, const int &depth, const NodeType &nodeType,
+            const bool &nullOk = true);
 };
 }
 #endif

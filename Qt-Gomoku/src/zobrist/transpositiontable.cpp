@@ -1,13 +1,13 @@
-#include  "TranslationTable.h"
+#include  "transpositiontable.h"
 
 using namespace Zobrist;
 
-TranslationTable::TranslationTable() : TranslationTable(1048576)
+TranspositionTable::TranspositionTable() : TranspositionTable(1048576)
 {
 };
 
-TranslationTable::TranslationTable(const int &size)
-    : hashTable(QVarLengthArray<hashEntry>(size))
+TranspositionTable::TranspositionTable(const int &size)
+    : hashTable(QVarLengthArray<HashEntry>(size))
 {
     std::random_device device;
     std::default_random_engine engine(device());
@@ -23,13 +23,13 @@ TranslationTable::TranslationTable(const int &size)
     boardHash = distribution(engine);
 }
 
-void TranslationTable::insert(const unsigned long long &hashKey, const hashEntry::Type &type,
-                              const int &depth,
-                              const int &score)
+void TranspositionTable::insert(const unsigned long long &hashKey, const HashEntry::Type &type,
+                                const int &depth,
+                                const int &score)
 {
     auto &entry = hashTable[hashKey & (hashTable.size() - 1)];
 
-    if (entry.type == hashEntry::Empty && entry.depth <= depth) {
+    if (entry.type == HashEntry::Empty && entry.depth <= depth) {
         entry.checkSum = hashKey;
         entry.type = type;
         entry.depth = depth;
@@ -37,19 +37,19 @@ void TranslationTable::insert(const unsigned long long &hashKey, const hashEntry
     }
 }
 
-bool TranslationTable::contains(const unsigned long long &hashKey, const int &depth) const
+bool TranspositionTable::contains(const unsigned long long &hashKey, const int &depth) const
 {
     auto &entry = hashTable[hashKey & (hashTable.size() - 1)];
 
     return entry.checkSum == hashKey && entry.depth >= depth;
 }
 
-unsigned long long TranslationTable::hash() const
+unsigned long long TranspositionTable::hash() const
 {
     return boardHash;
 }
 
-unsigned long long TranslationTable::translate(const QPoint &point, const Gomoku::Stone &stone)
+unsigned long long TranspositionTable::transpose(const QPoint &point, const Gomoku::Stone &stone)
 {
     const auto randomTable = stone == Gomoku::Black ? blackRandomTable : whiteRandomTable;
 
@@ -58,7 +58,7 @@ unsigned long long TranslationTable::translate(const QPoint &point, const Gomoku
     return boardHash;
 }
 
-hashEntry TranslationTable::at(const unsigned long long &hashKey) const
+HashEntry TranspositionTable::at(const unsigned long long &hashKey) const
 {
     return hashTable[hashKey & (hashTable.size() - 1)];
 }
