@@ -440,9 +440,9 @@ int Engine::pvs(const Stone &stone, int alpha, const int &beta, const int &depth
         }
     }
 
-    std::sort(candidates.begin(), candidates.end(), std::greater<>());
+    std::sort(candidates.begin(), candidates.end(), std::greater());
 
-    const auto limitWidth = LIMIT_WIDTH - ((LIMIT_WIDTH - depth) >> 1);
+    const auto limitWidth = LIMIT_WIDTH - (((LIMIT_DEPTH - depth) >> 1) << 1);
 
     if (candidates.size() > limitWidth) {
         candidates.resize(limitWidth);
