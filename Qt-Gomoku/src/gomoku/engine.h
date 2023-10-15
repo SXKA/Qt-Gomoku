@@ -86,7 +86,8 @@ private:
     int evaluatePoint(const QPoint &point) const;
     int lineScore(const QPoint &point, const int &dx, const int &dy) const;
     int evaluate(const Stone &stone) const;
-    int pvs(const Stone &stone, int alpha, const int &beta, const int &depth, const NodeType &nodeType, const bool& nullOk = true);
+    int pvs(const Stone &stone, int alpha, const int &beta, const int &depth, const NodeType &nodeType,
+            const bool &nullOk = true);
 };
 }
 #endif

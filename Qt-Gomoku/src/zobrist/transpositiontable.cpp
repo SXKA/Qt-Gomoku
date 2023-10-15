@@ -24,8 +24,8 @@ TranspositionTable::TranspositionTable(const int &size)
 }
 
 void TranspositionTable::insert(const unsigned long long &hashKey, const hashEntry::Type &type,
-                              const int &depth,
-                              const int &score)
+                                const int &depth,
+                                const int &score)
 {
     auto &entry = hashTable[hashKey & (hashTable.size() - 1)];
 
