@@ -27,7 +27,7 @@
 namespace Gomoku {
 inline auto R = 3;
 constexpr auto LIMIT_DEPTH = 10;
-constexpr auto LIMIT_WIDTH = 12;
+constexpr auto LIMIT_WIDTH = 10;
 
 enum NodeType {
     AllNode = -1, PVNode, CutNode

@@ -266,7 +266,8 @@ void Engine::updateScore(const QPoint &point)
 
 int Engine::evaluatePoint(const QPoint &point) const
 {
-    int score = 0;
+    const auto last = lastPoint();
+    int score = -(qAbs(point.x() - last.x()) + qAbs(point.y() - last.y()));
     constexpr std::array<int, 4> dx = {1, 0, 1, 1};
     constexpr std::array<int, 4> dy = {0, 1, 1, -1};
 
@@ -367,7 +368,7 @@ int Engine::pvs(const Stone &stone, int alpha, const int &beta, const int &depth
             ++hitNodeCount;
 
             return entry.score;
-        case Zobrist::HashEntry::UpperBound:
+        case Zobrist::HashEntry::LowerBound:
             if (entry.score >= beta) {
                 ++hitNodeCount;
 
@@ -375,7 +376,7 @@ int Engine::pvs(const Stone &stone, int alpha, const int &beta, const int &depth
             }
 
             break;
-        case Zobrist::HashEntry::LowBound:
+        case Zobrist::HashEntry::UpperBound:
             if (entry.score <= alpha) {
                 ++hitNodeCount;
 
@@ -416,7 +417,6 @@ int Engine::pvs(const Stone &stone, int alpha, const int &beta, const int &depth
                                 nodeType, false);
 
         if (score >= beta) {
-            transpositionTable.insert(transpositionTable.hash(), Zobrist::HashEntry::UpperBound, depth, score);
             ++cutNodeCount;
 
             return beta;
@@ -430,7 +430,7 @@ int Engine::pvs(const Stone &stone, int alpha, const int &beta, const int &depth
         candidates.emplace_back(evaluatePoint(limitedMove), limitedMove);
     }
 
-    const auto moves = generator.generate() - limitedGenerator.generate();
+    const auto moves = generator.generate() - limitedMoves;
 
     for (const auto &move : moves) {
         const auto score = evaluatePoint(move);
@@ -442,7 +442,7 @@ int Engine::pvs(const Stone &stone, int alpha, const int &beta, const int &depth
 
     std::sort(candidates.begin(), candidates.end(), std::greater());
 
-    const auto limitWidth = LIMIT_WIDTH - (((LIMIT_DEPTH - depth) >> 1) << 1);
+    const auto limitWidth = LIMIT_WIDTH - ((LIMIT_DEPTH - depth) >> 1);
 
     if (candidates.size() > limitWidth) {
         candidates.resize(limitWidth);
@@ -460,7 +460,7 @@ int Engine::pvs(const Stone &stone, int alpha, const int &beta, const int &depth
     undo(1);
 
     if (bestScore >= beta) {
-        transpositionTable.insert(transpositionTable.hash(), Zobrist::HashEntry::UpperBound, depth,
+        transpositionTable.insert(transpositionTable.hash(), Zobrist::HashEntry::LowerBound, depth,
                                   bestScore);
         ++cutNodeCount;
 
@@ -469,7 +469,7 @@ int Engine::pvs(const Stone &stone, int alpha, const int &beta, const int &depth
 
     candidates.pop_front();
 
-    auto valueType = Zobrist::HashEntry::LowBound;
+    auto valueType = Zobrist::HashEntry::UpperBound;
 
     for (const auto& [score, candidate] : candidates) {
         alpha = qMax(alpha, bestScore);
@@ -499,7 +499,7 @@ int Engine::pvs(const Stone &stone, int alpha, const int &beta, const int &depth
             bestScore = candidateScore;
 
             if (bestScore >= beta) {
-                transpositionTable.insert(transpositionTable.hash(), Zobrist::HashEntry::UpperBound, depth,
+                transpositionTable.insert(transpositionTable.hash(), Zobrist::HashEntry::LowerBound, depth,
                                           bestScore);
                 ++cutNodeCount;
 

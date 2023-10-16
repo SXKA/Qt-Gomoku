@@ -10,7 +10,7 @@
 namespace Zobrist {
 struct HashEntry {
     unsigned long long checkSum;
-    enum Type { Empty, Exact, LowBound, UpperBound } type;
+    enum Type { Empty, Exact, LowerBound, UpperBound } type;
     int score;
     int depth;
 };
