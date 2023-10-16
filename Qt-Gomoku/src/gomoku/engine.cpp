@@ -21,7 +21,6 @@ inline bool operator< (const QPoint &lhs, const QPoint &rhs)
 
 Engine::Engine()
     : generator(&board)
-    , limitedGenerator(&board, true)
     , board({})
 , blackScores({})
 , whiteScores({})
@@ -45,7 +44,6 @@ bool Engine::isLegal(const QPoint &point)
 
 void Engine::move(const QPoint &point, const Stone &stone)
 {
-    limitedGenerator.move(point);
     generator.move(point);
     movesHistory.push(point);
     blackScoresHistory.push(blackScores);
@@ -63,7 +61,6 @@ void Engine::undo(const int &step)
     for (int i = 0; i < step; ++i) {
         auto point = movesHistory.top();
 
-        limitedGenerator.undo(point);
         generator.undo(point);
         movesHistory.pop();
         transpositionTable.transpose(point, checkStone(point));
@@ -115,11 +112,26 @@ State Engine::gameState(const QPoint &point, const Stone &stone) const
 
 QPoint Engine::bestMove(const Stone &stone)
 {
-    const auto last = lastPoint();
+    const auto &last = lastPoint();
 
     if (movesHistory.empty() || (movesHistory.size() == 1 && last != QPoint(7, 7)
                                  && checkStone(last) != stone)) {
         return {7, 7};
+    }
+
+    if (movesHistory.size() == 1 && last == QPoint(7, 7)) {
+        std::random_device device;
+        std::default_random_engine engine(device());
+        std::uniform_int_distribution<int> distribution(-1, 1);
+
+        int x;
+        const auto y = distribution(engine);
+
+        do {
+            x = distribution(engine);
+        } while (x == 0 && y == 0);
+
+        return {x + 7, y + 7};
     }
 
     const QTime time = QTime::currentTime();
@@ -266,25 +278,58 @@ void Engine::updateScore(const QPoint &point)
 
 int Engine::evaluatePoint(const QPoint &point) const
 {
-    const auto last = lastPoint();
-    int score = -(qAbs(point.x() - last.x()) + qAbs(point.y() - last.y()));
+    int score = 0;
+    int blackThreeCount = 0;
+    int whiteThreeCount = 0;
     constexpr std::array<int, 4> dx = {1, 0, 1, 1};
     constexpr std::array<int, 4> dy = {0, 1, 1, -1};
 
     for (int i = 0; i < 4; ++i) {
-        score += lineScore(point, dx[i], dy[i]);
+        const auto scores = lineScores(point, dx[i], dy[i]);
+
+        if (scores.first >= Three && ++blackThreeCount >= 2) {
+            return Five - 1;
+        }
+
+        if (scores.second >= Three && ++whiteThreeCount >= 2) {
+            return Five - 1;
+        }
+
+        score += scores.first + scores.second;
     }
 
     return score;
 }
 
-int Engine::lineScore(const QPoint &point, const int &dx, const int &dy) const
+QPair<int, int> Engine::lineScores(const QPoint &point, const int &dx, const int &dy) const
 {
+    bool isolated = true;
+    std::array<Stone, 5> stones{Empty, Empty, Empty, Empty, Empty};
+
+    for (int i = -2; i <= 2; ++i) {
+        const auto neighborhood = QPoint(point.x() + dx * i, point.y() + dy * i);
+
+        if (!isLegal(neighborhood)) {
+            continue;
+        }
+
+        const auto &stone = checkStone(neighborhood);
+
+        if (stone != Empty) {
+            isolated = false;
+            stones[i + 2] = stone;
+        }
+    }
+
+    if (isolated || stones[0] * stones[1] == -1 && stones[3] * stones[4] == -1) {
+        return {0, 0};
+    }
+
     std::string blackLine(10, ' ');
     std::string whiteLine(10, ' ');
 
     for (int i = -5; i <= 5; ++i) {
-        auto neighborhood = QPoint(point.x() + dx * i, point.y() + dy * i);
+        const auto neighborhood = QPoint(point.x() + dx * i, point.y() + dy * i);
 
         if (!isLegal(neighborhood)) {
             continue;
@@ -310,10 +355,10 @@ int Engine::lineScore(const QPoint &point, const int &dx, const int &dy) const
     blackLine[5] = '1';
     whiteLine[5] = '1';
 
-    int score = 0;
+    int blackScore = 0;
 
     if (const auto &cacheScore = smallCache[blackLine]) {
-        score += *cacheScore;
+        blackScore = *cacheScore;
     } else {
         const auto accumulateScore = new int(0);
         const auto shapes = trie.parse_text(blackLine);
@@ -324,11 +369,13 @@ int Engine::lineScore(const QPoint &point, const int &dx, const int &dy) const
 
         smallCache.insert(blackLine, accumulateScore);
 
-        score += *accumulateScore;
+        blackScore += *accumulateScore;
     }
 
+    int whiteScore = 0;
+
     if (const auto &cacheScore = smallCache[whiteLine]) {
-        score += *cacheScore;
+        whiteScore = *cacheScore;
     } else {
         const auto accumulateScore = new int(0);
         const auto shapes = trie.parse_text(whiteLine);
@@ -339,10 +386,10 @@ int Engine::lineScore(const QPoint &point, const int &dx, const int &dy) const
 
         smallCache.insert(whiteLine, accumulateScore);
 
-        score += *accumulateScore;
+        whiteScore += *accumulateScore;
     }
 
-    return score;
+    return {blackScore, whiteScore};
 }
 
 
@@ -402,7 +449,7 @@ int Engine::pvs(const Stone &stone, int alpha, const int &beta, const int &depth
         return Min + (LIMIT_DEPTH - depth);
     }
 
-    if (depth <= 0 || limitedGenerator.empty()) {
+    if (depth <= 0 || generator.empty()) {
         const auto score = firstScore - secondScore;
 
         transpositionTable.insert(transpositionTable.hash(), Zobrist::HashEntry::Exact, depth, score);
@@ -411,7 +458,7 @@ int Engine::pvs(const Stone &stone, int alpha, const int &beta, const int &depth
     }
 
     if (nodeType != PVNode && nullOk) {
-        R = depth > 6 ? 3 : 2;
+        R = depth >= 6 ? 3 : 2;
 
         const auto score = -pvs(static_cast<const Stone>(-stone), -beta, -beta + 1, depth - R - 1,
                                 nodeType, false);
@@ -424,28 +471,16 @@ int Engine::pvs(const Stone &stone, int alpha, const int &beta, const int &depth
     }
 
     QList<QPair<int, QPoint>> candidates;
-    const auto &limitedMoves = limitedGenerator.generate();
-
-    for (const auto &limitedMove : limitedMoves) {
-        candidates.emplace_back(evaluatePoint(limitedMove), limitedMove);
-    }
-
-    const auto moves = generator.generate() - limitedMoves;
+    const auto &moves = generator.generate();
 
     for (const auto &move : moves) {
-        const auto score = evaluatePoint(move);
-
-        if (score >= Three << 1) {
-            candidates.emplace_back(score, move);
-        }
+        candidates.emplace_back(evaluatePoint(move), move);
     }
 
     std::sort(candidates.begin(), candidates.end(), std::greater());
 
-    const auto limitWidth = LIMIT_WIDTH - ((LIMIT_DEPTH - depth) >> 1);
-
-    if (candidates.size() > limitWidth) {
-        candidates.resize(limitWidth);
+    if (candidates.size() > LIMIT_WIDTH) {
+        candidates.resize(LIMIT_WIDTH);
     }
 
     if (depth == LIMIT_DEPTH) {
