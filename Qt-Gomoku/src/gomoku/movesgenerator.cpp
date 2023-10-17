@@ -1,6 +1,5 @@
-#include "movesgenerator.h"
-
 #include "engine.h"
+#include "movesgenerator.h"
 
 using namespace Gomoku;
 

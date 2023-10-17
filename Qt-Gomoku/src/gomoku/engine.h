@@ -35,7 +35,7 @@ enum NodeType {
 
 enum Score {
     One = 20,
-    Two = 60,
+    Two = 120,
     Three = 720,
     Four = 720,
     OpenFours = 4320,

@@ -288,11 +288,11 @@ int Engine::evaluatePoint(const QPoint &point) const
         const auto scores = lineScores(point, dx[i], dy[i]);
 
         if (scores.first >= Three && ++blackThreeCount >= 2) {
-            return Five - 1;
+            return OpenFours;
         }
 
         if (scores.second >= Three && ++whiteThreeCount >= 2) {
-            return Five - 1;
+            return OpenFours;
         }
 
         score += scores.first + scores.second;
@@ -303,7 +303,6 @@ int Engine::evaluatePoint(const QPoint &point) const
 
 QPair<int, int> Engine::lineScores(const QPoint &point, const int &dx, const int &dy) const
 {
-    bool isolated = true;
     std::array<Stone, 5> stones{Empty, Empty, Empty, Empty, Empty};
 
     for (int i = -2; i <= 2; ++i) {
@@ -316,12 +315,11 @@ QPair<int, int> Engine::lineScores(const QPoint &point, const int &dx, const int
         const auto &stone = checkStone(neighborhood);
 
         if (stone != Empty) {
-            isolated = false;
             stones[i + 2] = stone;
         }
     }
 
-    if (isolated || stones[0] * stones[1] == -1 && stones[3] * stones[4] == -1) {
+    if (!(stones[0] + stones[1] || stones[3] + stones[4])) {
         return {0, 0};
     }
 
@@ -483,16 +481,16 @@ int Engine::pvs(const Stone &stone, int alpha, const int &beta, const int &depth
         candidates.resize(LIMIT_WIDTH);
     }
 
-    if (depth == LIMIT_DEPTH) {
-        bestPoint = candidates.front().second;
-    }
-
     move(candidates.front().second, stone);
 
     auto bestScore = -pvs(static_cast<const Stone>(-stone), -beta, -alpha, depth - 1,
                           static_cast<const NodeType>(-nodeType));
 
     undo(1);
+
+    if (depth == LIMIT_DEPTH) {
+        bestPoint = candidates.front().second;
+    }
 
     if (bestScore >= beta) {
         transpositionTable.insert(transpositionTable.hash(), Zobrist::HashEntry::LowerBound, depth,
