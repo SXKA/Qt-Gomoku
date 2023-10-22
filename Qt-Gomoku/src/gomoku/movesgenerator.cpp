@@ -15,7 +15,7 @@ void MovesGenerator::move(const QPoint &point)
     for (int i = 0; i < 2; ++i) {
         for (int j = 0; j < 4; ++j) {
             for (int k = 1; k <= 2; ++k) {
-                auto neighborhood = point + QPoint(d[i] * dx[j] * k, d[i] * dy[j] * k);
+                const auto &neighborhood = point + QPoint(d[i] * dx[j] * k, d[i] * dy[j] * k);
 
                 if (Engine::isLegal(neighborhood) && (*board)[neighborhood.x()][neighborhood.y()] == Empty) {
                     const auto size = moves.count();
@@ -30,7 +30,7 @@ void MovesGenerator::move(const QPoint &point)
         }
     }
 
-    auto removedPoint = QPoint();
+    QPoint removedPoint{-1, -1};
 
     if (moves.remove(point)) {
         removedPoint = point;
@@ -47,7 +47,7 @@ void MovesGenerator::undo(const QPoint &point)
         moves.remove(p);
     }
 
-    if (!hist.second.isNull()) {
+    if (hist.second != QPoint(-1, -1)) {
         moves.insert(hist.second);
     }
 

@@ -2,16 +2,23 @@
 
 using namespace Zobrist;
 
-TranspositionTable::TranspositionTable() : TranspositionTable(1048576)
+TranspositionTable::TranspositionTable() : TranspositionTable(65536)
 {
 };
 
 TranspositionTable::TranspositionTable(const int &size)
-    : hashTable(QVarLengthArray<HashEntry>(size))
+    : innerTable(QVarLengthArray<HashEntry>(size))
+    , outerTable(QVarLengthArray<HashEntry>(size))
+    , mask(size - 1)
 {
     std::random_device device;
     std::default_random_engine engine(device());
     std::uniform_int_distribution<unsigned long long> distribution;
+
+    for (int i = 0; i < size; ++i) {
+        innerTable[i] = HashEntry{0, HashEntry::Empty, 0, 0, {-1, -1}};
+        outerTable[i] = HashEntry{0, HashEntry::Empty, 0, 0, {-1, -1}};
+    }
 
     for (int i = 0; i < 15; ++i) {
         for (int j = 0; j < 15; ++j) {
@@ -20,45 +27,86 @@ TranspositionTable::TranspositionTable(const int &size)
         }
     }
 
-    boardHash = distribution(engine);
+    checkSum = distribution(engine);
 }
 
 void TranspositionTable::insert(const unsigned long long &hashKey, const HashEntry::Type &type,
-                                const int &depth,
-                                const int &score)
+                                const int &depth, const int &score, const QPoint &point)
 {
-    auto &entry = hashTable[hashKey & (hashTable.size() - 1)];
+    const auto &index = hashKey & mask;
+    auto &innerEntry = innerTable[index];
+    auto &outerEntry = outerTable[index];
 
-    if (entry.type == HashEntry::Empty && entry.depth <= depth) {
-        entry.checkSum = hashKey;
-        entry.type = type;
-        entry.depth = depth;
-        entry.score = score;
+    if (outerEntry.depth <= depth) {
+        innerEntry = outerEntry;
+        outerEntry.lock = hashKey;
+        outerEntry.type = type;
+        outerEntry.depth = depth;
+        outerEntry.score = score;
+        outerEntry.move = point;
+    } else {
+        innerEntry.lock = hashKey;
+        innerEntry.type = type;
+        innerEntry.depth = depth;
+        innerEntry.score = score;
+        innerEntry.move = point;
     }
 }
 
-bool TranspositionTable::contains(const unsigned long long &hashKey, const int &depth) const
+void TranspositionTable::transpose(const QPoint &point, const Gomoku::Stone &stone)
 {
-    auto &entry = hashTable[hashKey & (hashTable.size() - 1)];
+    const auto &randomTable = stone == Gomoku::Black ? blackRandomTable : whiteRandomTable;
 
-    return entry.checkSum == hashKey && entry.depth >= depth;
+    checkSum ^= randomTable[point.x()][point.y()];
 }
 
 unsigned long long TranspositionTable::hash() const
 {
-    return boardHash;
+    return checkSum;
 }
 
-unsigned long long TranspositionTable::transpose(const QPoint &point, const Gomoku::Stone &stone)
+int TranspositionTable::probe(const unsigned long long &hashKey, const int &alpha, const int &beta,
+                              const int &depth, QPair<QPoint, QPoint> &pair) const
 {
-    const auto randomTable = stone == Gomoku::Black ? blackRandomTable : whiteRandomTable;
+    HashEntry entry{0, HashEntry::Empty, 0, 0, {-1, -1}};
+    const auto &index = hashKey & mask;
+    const auto &innerEntry = innerTable[index];
+    const auto &outerEntry = outerTable[index];
 
-    boardHash ^= randomTable[point.x()][point.y()];
+    if (outerEntry.type != HashEntry::Empty && outerEntry.lock == hashKey) {
+        if (outerEntry.depth >= depth) {
+            entry = outerEntry;
+        }
 
-    return boardHash;
-}
+        pair.first = outerEntry.move;
+    }
 
-HashEntry TranspositionTable::at(const unsigned long long &hashKey) const
-{
-    return hashTable[hashKey & (hashTable.size() - 1)];
+    if (innerEntry.type != HashEntry::Empty && innerEntry.lock == hashKey) {
+        if (entry.type == HashEntry::Empty && innerEntry.depth >= depth) {
+            entry = innerEntry;
+        }
+
+        pair.second = innerEntry.move;
+    }
+
+    switch (entry.type) {
+    case HashEntry::Empty:
+        break;
+    case HashEntry::Exact:
+        return entry.score;
+    case HashEntry::LowerBound:
+        if (entry.score >= beta) {
+            return entry.score;
+        }
+
+        break;
+    case HashEntry::UpperBound:
+        if (entry.score <= alpha) {
+            return entry.score;
+        }
+
+        break;
+    }
+
+    return MISS;
 }

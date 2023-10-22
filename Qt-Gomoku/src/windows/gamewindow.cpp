@@ -2,6 +2,7 @@
 
 GameWindow::GameWindow(QWidget *parent)
     : QMainWindow(parent)
+    , last(QPoint(-1, -1))
     , playerStone(Gomoku::Black)
     , step(0)
     , gameOver(false)
@@ -62,7 +63,7 @@ void GameWindow::mouseReleaseEvent(QMouseEvent *event)
     }
 
     ui.undo->setEnabled(true);
-    last = engine.lastPoint();
+    last = engine.lastMove();
     ++step;
 
     repaint();
@@ -100,7 +101,7 @@ void GameWindow::mouseReleaseEvent(QMouseEvent *event)
 
             engine.move(engine.bestMove(stone), stone);
 
-            last = engine.lastPoint();
+            last = engine.lastMove();
         });
 
         watcher.setFuture(future);
@@ -199,7 +200,7 @@ void GameWindow::paintEvent(QPaintEvent *event)
                          (move.x() + 1) * 40 + 30);
     }
 
-    if (!last.isNull()) {
+    if (last != QPoint(-1, -1)) {
         painter.drawLine((last.y() + 1) * 40 - 1, (last.x() + 1) * 40 + 20, (last.y() + 1) * 40 - 6,
                          (last.x() + 1) * 40 + 20);
         painter.drawLine((last.y() + 1) * 40 + 1, (last.x() + 1) * 40 + 20, (last.y() + 1) * 40 + 6,
@@ -219,7 +220,7 @@ void GameWindow::setGame(const Gomoku::Stone &stone, const bool &type)
     if (playerStone == Gomoku::White && gameType == PVC) {
         engine.move(engine.bestMove(static_cast<const Gomoku::Stone>(-playerStone)), Gomoku::Black);
 
-        last = engine.lastPoint();
+        last = engine.lastMove();
     }
 }
 
@@ -231,7 +232,7 @@ void GameWindow::on_async_finished()
     repaint();
 
     const auto stone = static_cast<const Gomoku::Stone>(-playerStone);
-    const auto gameState = engine.gameState(engine.lastPoint(), stone);
+    const auto gameState = engine.gameState(engine.lastMove(), stone);
 
     if (gameState == Gomoku::Draw || gameState == Gomoku::Win) {
         gameOver = true;
@@ -292,7 +293,7 @@ void GameWindow::on_undo_released()
         playerStone = static_cast<const Gomoku::Stone>(-playerStone);
     }
 
-    last = engine.lastPoint();
+    last = engine.lastMove();
 
     update();
 }

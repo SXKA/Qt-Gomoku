@@ -27,7 +27,7 @@
 namespace Gomoku {
 inline auto R = 3;
 constexpr auto LIMIT_DEPTH = 10;
-constexpr auto LIMIT_WIDTH = 12;
+constexpr auto LIMIT_WIDTH = 8;
 
 enum NodeType {
     AllNode = -1, PVNode, CutNode
@@ -64,6 +64,7 @@ private:
     std::array<std::array<Stone, 15>, 15> board;
     std::array<int, 72> blackScores;
     std::array<int, 72> whiteScores;
+    unsigned long long checkSum;
     int blackTotalScore;
     int whiteTotalScore;
     int cutNodeCount;
@@ -77,13 +78,13 @@ public:
     [[nodiscard]] Stone checkStone(const QPoint &point) const;
     [[nodiscard]] State gameState(const QPoint &point, const Stone &stone) const;
     QPoint bestMove(const Stone &stone);
-    [[nodiscard]] QPoint lastPoint() const;
+    [[nodiscard]] QPoint lastMove() const;
 
 private:
     void restoreScore();
     void updateScore(const QPoint &point);
     int evaluatePoint(const QPoint &point) const;
-    QPair<int, int> lineScores(const QPoint &point, const int &dx, const int &dy) const;
+    int lineScores(const QPoint &point, const int &dx, const int &dy) const;
     int evaluate(const Stone &stone) const;
     int pvs(const Stone &stone, int alpha, const int &beta, const int &depth, const NodeType &nodeType,
             const bool &nullOk = true);
