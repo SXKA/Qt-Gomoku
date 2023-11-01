@@ -1,5 +1,5 @@
-#ifndef GOBANG_H
-#define GOBANG_H
+#ifndef ENGINE_H
+#define ENGINE_H
 
 #include "../zobrist/transpositiontable.h"
 #include "movesgenerator.h"
@@ -52,7 +52,7 @@ private:
     static aho_corasick::trie trie;
     static QCache<std::string, int> largeCache;
     static QCache<std::string, int> smallCache;
-    static const QHash<std::string, Score> shapeScoreHash;
+    static const QHash<std::string, Score> shapeScoreTable;
     MovesGenerator generator;
     Zobrist::TranspositionTable transpositionTable;
     QStack<QPoint> movesHistory;
@@ -65,11 +65,11 @@ private:
     std::array<int, 72> blackScores;
     std::array<int, 72> whiteScores;
     unsigned long long checkSum;
+    unsigned long long cutNodeCount;
+    unsigned long long hitNodeCount;
+    unsigned long long nodeCount;
     int blackTotalScore;
     int whiteTotalScore;
-    int cutNodeCount;
-    int hitNodeCount;
-    int nodeCount;
 public:
     Engine();
     [[nodiscard]] static bool isLegal(const QPoint &point);
@@ -84,7 +84,7 @@ private:
     void restoreScore();
     void updateScore(const QPoint &point);
     int evaluatePoint(const QPoint &point) const;
-    int lineScores(const QPoint &point, const int &dx, const int &dy) const;
+    int lineScore(const QPoint &point, const int &dx, const int &dy) const;
     int evaluate(const Stone &stone) const;
     int pvs(const Stone &stone, int alpha, const int &beta, const int &depth, const NodeType &nodeType,
             const bool &nullOk = true);

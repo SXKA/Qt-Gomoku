@@ -7,7 +7,7 @@ MovesGenerator::MovesGenerator(std::array<std::array<Stone, 15>, 15> *board) : b
 
 void MovesGenerator::move(const QPoint &point)
 {
-    auto hist = QSet<QPoint>();
+    QSet<QPoint> hist;
     constexpr std::array<int, 2> d = {-1, 1};
     constexpr std::array<int, 4> dx = {1, 0, 1, 1};
     constexpr std::array<int, 4> dy = {0, 1, 1, -1};
@@ -18,7 +18,7 @@ void MovesGenerator::move(const QPoint &point)
                 const auto &neighborhood = point + QPoint(d[i] * dx[j] * k, d[i] * dy[j] * k);
 
                 if (Engine::isLegal(neighborhood) && (*board)[neighborhood.x()][neighborhood.y()] == Empty) {
-                    const auto size = moves.count();
+                    const auto &size = moves.size();
 
                     moves.insert(neighborhood);
 
@@ -36,16 +36,14 @@ void MovesGenerator::move(const QPoint &point)
         removedPoint = point;
     }
 
-    history.emplaceBack(hist, removedPoint);
+    history.emplace_back(hist, removedPoint);
 }
 
 void MovesGenerator::undo(const QPoint &point)
 {
     const auto &hist = history.top();
 
-    for (const auto &p : hist.first) {
-        moves.remove(p);
-    }
+    moves -= hist.first;
 
     if (hist.second != QPoint(-1, -1)) {
         moves.insert(hist.second);
