@@ -121,7 +121,7 @@ void GameWindow::paintEvent(QPaintEvent *event)
 
     palette.setColor(QPalette::Window, QColor("#b1723c"));
 
-    this->setPalette(palette);
+    setPalette(palette);
 
     QPen pen = painter.pen();
 
@@ -251,7 +251,7 @@ void GameWindow::on_async_finished()
 
 void GameWindow::on_exit_released()
 {
-    this->close();
+    close();
 }
 
 void GameWindow::on_newGame_released()
@@ -267,6 +267,8 @@ void GameWindow::on_newGame_released()
         }
     }
 
+    hide();
+
     gameWindow->setGame(playerStone, gameType);
     gameWindow->setFixedSize(640, 660);
     gameWindow->setWindowFlag(Qt::WindowMaximizeButtonHint, false);
@@ -274,7 +276,7 @@ void GameWindow::on_newGame_released()
 
     watcher.waitForFinished();
 
-    this->deleteLater();
+    deleteLater();
 }
 
 void GameWindow::on_undo_released()

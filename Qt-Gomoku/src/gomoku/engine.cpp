@@ -3,6 +3,7 @@
 using namespace Gomoku;
 
 aho_corasick::trie Engine::trie = aho_corasick::trie();
+aho_corasick::trie Engine::checkTrie = aho_corasick::trie();
 QCache<std::string, int> Engine::largeCache = QCache<std::string, int>(16777216);
 QCache<std::string, int> Engine::smallCache = QCache<std::string, int>(65536);
 const QHash<std::string, Score> Engine::shapeScoreTable = {
@@ -22,20 +23,30 @@ inline bool operator< (const QPoint &lhs, const QPoint &rhs)
 Engine::Engine()
     : generator(&board)
     , board({})
-    , blackScores({})
-    , whiteScores({})
-    , checkSum(transpositionTable.hash())
-    , cutNodeCount(0)
-    , hitNodeCount(0)
-    , nodeCount(0)
-    , blackTotalScore(0)
-    , whiteTotalScore(0)
+, blackShapes({})
+, whiteShapes({})
+, blackScores({})
+, whiteScores({})
+, checkSum(transpositionTable.hash())
+, cutNodeCount(0)
+, hitNodeCount(0)
+, nodeCount(0)
+, blackTotalScore(0)
+, whiteTotalScore(0)
 {
     trie.only_whole_words();
+    checkTrie.only_whole_words();
 
-    for (const auto &shapeScore : shapeScoreTable.keys()) {
-        trie.insert(shapeScore);
+    for (auto it = shapeScoreTable.cbegin(); it != shapeScoreTable.cend(); ++it) {
+        trie.insert(it.key());
+
+        if (it.value() >= Three) {
+            checkTrie.insert(it.key());
+        }
     }
+
+    blackShapes.fill(std::string(15, '0'));
+    whiteShapes.fill(std::string(15, '0'));
 }
 
 bool Engine::isLegal(const QPoint &point)
@@ -45,14 +56,35 @@ bool Engine::isLegal(const QPoint &point)
 
 void Engine::move(const QPoint &point, const Stone &stone)
 {
+    const auto &x = point.x();
+    const auto &y = point.y();
+
     generator.move(point);
-    movesHistory.push(point);
-    blackScoresHistory.push(blackScores);
-    whiteScoresHistory.push(whiteScores);
-    blackTotalScoreHistory.push(blackTotalScore);
-    whiteTotalScoreHistory.push(whiteTotalScore);
+    history.moves.push(point);
+    history.blackScores.push(blackScores);
+    history.whiteScores.push(whiteScores);
+    history.blackTotalScore.push(blackTotalScore);
+    history.whiteTotalScore.push(whiteTotalScore);
     transpositionTable.transpose(point, stone);
-    board[point.x()][point.y()] = stone;
+    board[x][y] = stone;
+
+    auto &firstShapes = stone == Black ? blackShapes : whiteShapes;
+    auto &secondShapes = stone == Black ? whiteShapes : blackShapes;
+
+    firstShapes[y][x] = '1';
+    secondShapes[y][x] = '2';
+    firstShapes[x + 15][y] = '1';
+    secondShapes[x + 15][y] = '2';
+
+    if (qAbs(y - x) <= 10) {
+        firstShapes[y - x + 40][qMin(x, y)] = '1';
+        secondShapes[y - x + 40][qMin(x, y)] = '2';
+    }
+
+    if (x + y >= 4 && x + y <= 24) {
+        firstShapes[x + y + 47][qMin(y, 14 - x)] = '1';
+        secondShapes[x + y + 47][qMin(y, 14 - x)] = '2';
+    }
 
     updateScore(point);
 }
@@ -60,10 +92,29 @@ void Engine::move(const QPoint &point, const Stone &stone)
 void Engine::undo(const int &step)
 {
     for (int i = 0; i < step; ++i) {
-        auto point = movesHistory.top();
+        auto &point = history.moves.top();
+        auto &firstShapes = checkStone(point) == Black ? blackShapes : whiteShapes;
+        auto &secondShapes = checkStone(point) == Black ? whiteShapes : blackShapes;
+        const auto &x = point.x();
+        const auto &y = point.y();
+
+        firstShapes[y][x] = '0';
+        secondShapes[y][x] = '0';
+        firstShapes[x + 15][y] = '0';
+        secondShapes[x + 15][y] = '0';
+
+        if (qAbs(y - x) <= 10) {
+            firstShapes[y - x + 40][qMin(x, y)] = '0';
+            secondShapes[y - x + 40][qMin(x, y)] = '0';
+        }
+
+        if (x + y >= 4 && x + y <= 24) {
+            firstShapes[x + y + 47][qMin(y, 14 - x)] = '0';
+            secondShapes[x + y + 47][qMin(y, 14 - x)] = '0';
+        }
 
         generator.undo(point);
-        movesHistory.pop();
+        history.moves.pop();
         transpositionTable.transpose(point, checkStone(point));
         board[point.x()][point.y()] = Empty;
 
@@ -115,8 +166,8 @@ QPoint Engine::bestMove(const Stone &stone)
 {
     const auto &last = lastMove();
 
-    if (movesHistory.empty() || (movesHistory.size() == 1 && last != QPoint(7, 7)
-                                 && checkStone(last) != stone)) {
+    if (history.moves.empty() || (history.moves.size() == 1 && last != QPoint(7, 7)
+                                  && checkStone(last) != stone)) {
         return {7, 7};
     }
 
@@ -144,68 +195,33 @@ QPoint Engine::bestMove(const Stone &stone)
 
 QPoint Engine::lastMove() const
 {
-    return movesHistory.empty() ? QPoint(-1, -1) : movesHistory.top();
+    return history.moves.empty() ? QPoint(-1, -1) : history.moves.top();
 }
 
-inline void Engine::restoreScore()
+void Engine::restoreScore()
 {
-    blackScores = blackScoresHistory.top();
-    whiteScores = whiteScoresHistory.top();
-    blackTotalScore = blackTotalScoreHistory.top();
-    whiteTotalScore = whiteTotalScoreHistory.top();
-    blackScoresHistory.pop();
-    whiteScoresHistory.pop();
-    blackTotalScoreHistory.pop();
-    whiteTotalScoreHistory.pop();
+    blackScores = history.blackScores.top();
+    whiteScores = history.whiteScores.top();
+    blackTotalScore = history.blackTotalScore.top();
+    whiteTotalScore = history.whiteTotalScore.top();
+    history.blackScores.pop();
+    history.whiteScores.pop();
+    history.blackTotalScore.pop();
+    history.whiteTotalScore.pop();
 }
 
 void Engine::updateScore(const QPoint &point)
 {
-    std::array<std::string, 4> blackLines;
-    std::array<std::string, 4> whiteLines;
-    auto insertToLine = [this, &blackLines, &whiteLines](const auto & i, const auto & p) {
-        switch (checkStone(p)) {
-        case Empty:
-            blackLines[i].push_back('0');
-            whiteLines[i].push_back('0');
-
-            break;
-        case Black:
-            blackLines[i].push_back('1');
-            whiteLines[i].push_back(' ');
-
-            break;
-        case White:
-            blackLines[i].push_back(' ');
-            whiteLines[i].push_back('1');
-
-            break;
-        }
-    };
-    const auto &x = point.x();
-    const auto &y = point.y();
-
-    for (int i = 0; i < 15; ++i) {
-        insertToLine(0, QPoint(i, y));
-        insertToLine(1, QPoint(x, i));
-    }
-
-    auto base = qMin(x, y);
-
-    for (int i = x - base, j = y - base; i < 15 && j < 15; ++i, ++j) {
-        insertToLine(2, QPoint(i, j));
-    }
-
-    base = qMin(y, 14 - x);
-
-    for (int i = x + base, j = y - base; i >= 0 && j < 15; --i, ++j) {
-        insertToLine(3, QPoint(i, j));
-    }
 
     std::array<int, 4> blackLineScores{};
     std::array<int, 4> whiteLineScores{};
+    const auto &x = point.x();
+    const auto &y = point.y();
+    const std::array<bool, 4> valid = {true, true, qAbs(y - x) <= 10, x + y >= 4 && x + y <= 24};
+    const std::reference_wrapper<std::string> blackLines[] = {blackShapes[y], blackShapes[x + 15], blackShapes[y - x + 40], blackShapes[valid[3] ? x + y + 47 : 0]};
+    const std::reference_wrapper<std::string> whiteLines[] = {whiteShapes[y], whiteShapes[x + 15], whiteShapes[y - x + 40], whiteShapes[valid[3] ? x + y + 47 : 0]};
 
-    for (int i = 0; i < 4; ++i) {
+    for (int i = 0; i < 4 && valid[i]; ++i) {
         if (const auto &cacheScore = largeCache[blackLines[i]]) {
             blackLineScores[i] = *cacheScore;
         } else {
@@ -231,7 +247,6 @@ void Engine::updateScore(const QPoint &point)
         }
     }
 
-    auto offsetIndex = x + 15;
     auto update = [this](const auto & index, const auto & blackLineScore, const auto & whiteLineScore) {
         blackTotalScore -= blackScores[index];
         whiteTotalScore -= whiteScores[index];
@@ -242,41 +257,130 @@ void Engine::updateScore(const QPoint &point)
     };
 
     update(y, blackLineScores[0], whiteLineScores[0]);
-    update(offsetIndex, blackLineScores[1], whiteLineScores[1]);
+    update(x + 15, blackLineScores[1], whiteLineScores[1]);
 
-    offsetIndex = y - x + 40;
-
-    if (qAbs(y - x) <= 10) {
-        update(offsetIndex, blackLineScores[2], whiteLineScores[2]);
+    if (valid[2]) {
+        update(y - x + 40, blackLineScores[2], whiteLineScores[2]);
     }
 
-    offsetIndex = x + y + 47;
-
-    if (x + y >= 4 && x + y <= 24) {
-        update(offsetIndex, blackLineScores[3], whiteLineScores[3]);
+    if (valid[3]) {
+        update(x + y + 47, blackLineScores[3], whiteLineScores[3]);
     }
+}
+
+bool Engine::inCheck(const Stone &stone)
+{
+    int firstCount = 0;
+    const auto &firstShapes = stone == Black ? blackShapes : whiteShapes;
+    const auto &secondShapes = stone == Black ? whiteShapes : blackShapes;
+    const auto &firstScores = stone == Black ? blackScores : whiteScores;
+    const auto &secondScores = stone == Black ? whiteScores : blackScores;
+
+    for (int i = 0; i < 72; ++i) {
+        if (firstScores[i] >= OpenFours) {
+            return false;
+        }
+
+        if (firstScores[i] >= Three) {
+            const auto &shapes = checkTrie.parse_text(firstShapes[i]);
+
+            for (const auto &shape : shapes) {
+                const auto &keyword = shape.get_keyword();
+                const auto &count = std::count(keyword.cbegin(), keyword.cend(), '1');
+
+                firstCount = qMax(firstCount, count);
+            }
+        }
+    }
+
+    if (firstCount == 4) {
+        return false;
+    }
+
+    int line;
+    int start;
+    int end;
+    int secondCount = 0;
+
+    for (int i = 0; i < 72; ++i) {
+        if (secondScores[i] >= Three) {
+            const auto &shapes = checkTrie.parse_text(secondShapes[i]);
+
+            for (const auto &shape : shapes) {
+                const auto &keyword = shape.get_keyword();
+                const auto &count = std::count(keyword.cbegin(), keyword.cend(), '1');
+
+                if (count > secondCount) {
+                    line = i;
+                    start = shape.get_start();
+                    end = shape.get_end();
+                    secondCount = count;
+                }
+            }
+        }
+    }
+
+    if (secondCount == 4) {
+        QList<int> indices;
+
+        for (int i = start; i <= end; ++i) {
+            if (secondShapes[line][i] == '0') {
+                indices.push_back(i);
+            }
+        }
+
+        escapes.clear();
+
+        for (const auto &index : indices) {
+            QPoint point;
+
+            if (line < 15) {
+                point.setX(index);
+                point.setY(line);
+            } else if (line < 30) {
+                point.setX(line - 15);
+                point.setY(index);
+            } else if (line < 51) {
+                point.setX(qMax(0, 40 - line) + index);
+                point.setY(qMax(0, line - 40) + index);
+            } else {
+                point.setX(qMin(14, line - 47) - index);
+                point.setY(qMax(0, line - 61) + index);
+            }
+
+            if (isLegal(point)) {
+                escapes.insert(point);
+            } else {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    return false;
 }
 
 int Engine::evaluatePoint(const QPoint &point) const
 {
     int score = 0;
-    constexpr std::array<int, 4> dx = {1, 0, 1, 1};
-    constexpr std::array<int, 4> dy = {0, 1, 1, -1};
 
     for (int i = 0; i < 4; ++i) {
-        score += lineScore(point, dx[i], dy[i]);
+        score += lineScore(point, i);
     }
 
     return score;
 }
 
-int Engine::lineScore(const QPoint &point, const int &dx, const int &dy) const
+int Engine::lineScore(const QPoint &point, const int &direction) const
 {
     bool isolated = true;
+    constexpr std::array<int, 4> dx = {1, 0, 1, 1};
+    constexpr std::array<int, 4> dy = {0, 1, 1, -1};
     std::array<Stone, 5> stones{Empty, Empty, Empty, Empty, Empty};
 
     for (int i = -2; i <= 2; ++i) {
-        const auto &neighborhood = QPoint(point.x() + dx * i, point.y() + dy * i);
+        const auto &neighborhood = QPoint(point.x() + dx[direction] * i, point.y() + dy[direction] * i);
 
         if (!isLegal(neighborhood)) {
             continue;
@@ -299,41 +403,59 @@ int Engine::lineScore(const QPoint &point, const int &dx, const int &dy) const
         return 0;
     }
 
+    int offset;
     std::string blackLine;
     std::string whiteLine;
+    const auto &x = point.x();
+    const auto &y = point.y();
 
-    for (int i = -4; i <= 4; ++i) {
-        const auto &neighborhood = QPoint(point.x() + dx * i, point.y() + dy * i);
+    switch (direction) {
+    case 0:
+        offset = qMax(0, x - 4);
+        blackLine = blackShapes[y];
+        whiteLine = whiteShapes[y];
+        blackLine[x] = '1';
+        whiteLine[x] = '1';
 
-        if (!i) {
-            blackLine.push_back('1');
-            whiteLine.push_back('1');
+        break;
+    case 1:
+        offset = qMax(0, y - 4);
+        blackLine = blackShapes[x + 15];
+        whiteLine = whiteShapes[x + 15];
+        blackLine[y] = '1';
+        whiteLine[y] = '1';
 
-            continue;
+        break;
+    case 2:
+        if (qAbs(y - x) > 10) {
+            return 0;
         }
 
-        if (!isLegal(neighborhood)) {
-            continue;
+        offset = qMax(0, qMin(x, y) - 4);
+        blackLine = blackShapes[y - x + 40];
+        whiteLine = whiteShapes[y - x + 40];
+        blackLine[qMin(x, y)] = '1';
+        whiteLine[qMin(x, y)] = '1';
+
+        break;
+    case 3:
+        if (x + y < 4 || x + y > 24) {
+            return 0;
         }
 
-        switch (checkStone(neighborhood)) {
-        case Empty:
-            blackLine.push_back('0');
-            whiteLine.push_back('0');
+        offset = qMax(0, qMin(y, 14 - x) - 4);
+        blackLine = blackShapes[x + y + 47];
+        whiteLine = whiteShapes[x + y + 47];
+        blackLine[qMin(y, 14 - x)] = '1';
+        whiteLine[qMin(y, 14 - x)] = '1';
 
-            break;
-        case Black:
-            blackLine.push_back('1');
-            whiteLine.push_back(' ');
-
-            break;
-        case White:
-            blackLine.push_back(' ');
-            whiteLine.push_back('1');
-
-            break;
-        }
+        break;
+    default:
+        break;
     }
+
+    blackLine = blackLine.substr(offset, qMin(9, 15 - offset));
+    whiteLine = whiteLine.substr(offset, qMin(9, 15 - offset));
 
     int score = 0;
 
@@ -383,14 +505,14 @@ int Engine::pvs(const Stone &stone, int alpha, const int &beta, const int &depth
     QPair<QPoint, QPoint> goodMovePair{{-1, -1}, {-1, -1}};
 
     if (transpositionTable.hash() != checkSum) {
-	    const auto &probeValue = transpositionTable.probe(transpositionTable.hash(), alpha, beta, depth,
-	                                                      goodMovePair);
+        const auto &probeValue = transpositionTable.probe(transpositionTable.hash(), alpha, beta, depth,
+                                                          goodMovePair);
 
-	    if (probeValue != Zobrist::MISS) {
-	        ++hitNodeCount;
+        if (probeValue != Zobrist::MISS) {
+            ++hitNodeCount;
 
-	        return probeValue;
-	    }
+            return probeValue;
+        }
     }
 
     const auto &firstScore = evaluate(stone);
@@ -412,7 +534,9 @@ int Engine::pvs(const Stone &stone, int alpha, const int &beta, const int &depth
         return firstScore - secondScore;
     }
 
-    if (nodeType != PVNode && nullOk) {
+    const bool &extend = inCheck(stone);
+
+    if (nodeType != PVNode && nullOk && !extend) {
         R = depth >= 6 ? 3 : 2;
 
         const auto &score = -pvs(static_cast<const Stone>(-stone), -beta, -beta + 1, depth - R - 1,
@@ -428,8 +552,12 @@ int Engine::pvs(const Stone &stone, int alpha, const int &beta, const int &depth
     QList<QPair<int, QPoint>> candidates;
     auto moves = generator.generate();
 
-    moves.remove(goodMovePair.first);
-    moves.remove(goodMovePair.second);
+    if (extend) {
+        moves = escapes;
+    } else {
+        moves.remove(goodMovePair.first);
+        moves.remove(goodMovePair.second);
+    }
 
     for (const auto &move : moves) {
         candidates.emplace_back(evaluatePoint(move), move);
@@ -437,22 +565,16 @@ int Engine::pvs(const Stone &stone, int alpha, const int &beta, const int &depth
 
     std::sort(candidates.begin(), candidates.end(), std::greater());
 
-    if (goodMovePair.second != QPoint(-1, -1) && goodMovePair.second != goodMovePair.first) {
+    if (!extend && goodMovePair.second != QPoint(-1, -1) && goodMovePair.second != goodMovePair.first) {
         candidates.emplaceFront(evaluatePoint(goodMovePair.second), goodMovePair.second);
     }
 
-    if (goodMovePair.first != QPoint(-1, -1)) {
+    if (!extend && goodMovePair.first != QPoint(-1, -1)) {
         candidates.emplaceFront(evaluatePoint(goodMovePair.first), goodMovePair.first);
     }
 
     if (candidates.size() > LIMIT_WIDTH) {
         candidates.resize(LIMIT_WIDTH);
-    }
-
-    bool extend = false;
-
-    if (candidates.front().first >= Five) {
-        extend = true;
     }
 
     move(candidates.front().second, stone);
@@ -464,11 +586,11 @@ int Engine::pvs(const Stone &stone, int alpha, const int &beta, const int &depth
 
     if (bestScore >= beta) {
         if (transpositionTable.hash() != checkSum) {
-	        transpositionTable.insert(transpositionTable.hash(), Zobrist::HashEntry::LowerBound, depth,
-	                                  bestScore, candidates.front().second);
+            transpositionTable.insert(transpositionTable.hash(), Zobrist::HashEntry::LowerBound, depth,
+                                      bestScore, candidates.front().second);
         }
 
-    	++cutNodeCount;
+        ++cutNodeCount;
 
         return bestScore;
     }
@@ -489,12 +611,6 @@ int Engine::pvs(const Stone &stone, int alpha, const int &beta, const int &depth
     candidates.pop_front();
 
     for (const auto& [score, candidate] : candidates) {
-        extend = false;
-
-        if (score >= Five) {
-            extend = true;
-        }
-
         move(candidate, stone);
 
         auto candidateScore = -pvs(static_cast<const Stone>(-stone), -alpha - 1, -alpha, depth + extend - 1,
@@ -521,8 +637,8 @@ int Engine::pvs(const Stone &stone, int alpha, const int &beta, const int &depth
 
             if (bestScore >= beta) {
                 if (transpositionTable.hash() != checkSum) {
-	                transpositionTable.insert(transpositionTable.hash(), Zobrist::HashEntry::LowerBound, depth,
-	                                          bestScore, candidate);
+                    transpositionTable.insert(transpositionTable.hash(), Zobrist::HashEntry::LowerBound, depth,
+                                              bestScore, candidate);
                 }
 
                 ++cutNodeCount;
@@ -547,7 +663,7 @@ int Engine::pvs(const Stone &stone, int alpha, const int &beta, const int &depth
     }
 
     if (transpositionTable.hash() != checkSum) {
-		transpositionTable.insert(transpositionTable.hash(), valueType, depth, bestScore, pvNode);
+        transpositionTable.insert(transpositionTable.hash(), valueType, depth, bestScore, pvNode);
     }
 
     return bestScore;

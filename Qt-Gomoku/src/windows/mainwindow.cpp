@@ -8,7 +8,7 @@ MainWindow::MainWindow(QWidget *parent)
 
 void MainWindow::on_exit_released()
 {
-    this->close();
+    close();
 }
 
 void MainWindow::on_pvc_released()
@@ -30,7 +30,7 @@ void MainWindow::on_pvc_released()
     gameWindow->setWindowFlag(Qt::WindowMaximizeButtonHint, false);
     gameWindow->show();
 
-    this->close();
+    close();
 }
 
 void MainWindow::on_pvp_released()
@@ -42,5 +42,5 @@ void MainWindow::on_pvp_released()
     gameWindow->setWindowFlag(Qt::WindowMaximizeButtonHint, false);
     gameWindow->show();
 
-    this->close();
+    close();
 }

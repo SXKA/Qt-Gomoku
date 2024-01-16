@@ -27,7 +27,7 @@
 namespace Gomoku {
 inline auto R = 3;
 constexpr auto LIMIT_DEPTH = 10;
-constexpr auto LIMIT_WIDTH = 8;
+constexpr auto LIMIT_WIDTH = 10;
 
 enum NodeType {
     AllNode = -1, PVNode, CutNode
@@ -46,22 +46,30 @@ enum Score {
 
 enum State { Draw = -1, Undecided, Win };
 
+struct History {
+    QStack<QPoint> moves;
+    QStack<std::array<int, 72>> blackScores;
+    QStack<std::array<int, 72>> whiteScores;
+    QStack<int> blackTotalScore;
+    QStack<int> whiteTotalScore;
+};
+
 class Engine
 {
 private:
     static aho_corasick::trie trie;
+    static aho_corasick::trie checkTrie;
     static QCache<std::string, int> largeCache;
     static QCache<std::string, int> smallCache;
     static const QHash<std::string, Score> shapeScoreTable;
+    History history;
     MovesGenerator generator;
     Zobrist::TranspositionTable transpositionTable;
-    QStack<QPoint> movesHistory;
-    QStack<std::array<int, 72>> blackScoresHistory;
-    QStack<std::array<int, 72>> whiteScoresHistory;
-    QStack<int> blackTotalScoreHistory;
-    QStack<int> whiteTotalScoreHistory;
+    QSet<QPoint> escapes;
     QPoint bestPoint;
     std::array<std::array<Stone, 15>, 15> board;
+    std::array<std::string, 72> blackShapes;
+    std::array<std::string, 72> whiteShapes;
     std::array<int, 72> blackScores;
     std::array<int, 72> whiteScores;
     unsigned long long checkSum;
@@ -83,8 +91,9 @@ public:
 private:
     void restoreScore();
     void updateScore(const QPoint &point);
+    bool inCheck(const Stone &stone);
     int evaluatePoint(const QPoint &point) const;
-    int lineScore(const QPoint &point, const int &dx, const int &dy) const;
+    int lineScore(const QPoint &point, const int &direction) const;
     int evaluate(const Stone &stone) const;
     int pvs(const Stone &stone, int alpha, const int &beta, const int &depth, const NodeType &nodeType,
             const bool &nullOk = true);

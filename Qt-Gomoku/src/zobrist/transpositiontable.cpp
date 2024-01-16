@@ -9,7 +9,7 @@ TranspositionTable::TranspositionTable() : TranspositionTable(65536)
 TranspositionTable::TranspositionTable(const int &size)
     : innerTable(QVarLengthArray<HashEntry>(size))
     , outerTable(QVarLengthArray<HashEntry>(size))
-	, checkSum(0)
+    , checkSum(0)
     , mask(size - 1)
 {
     std::random_device device;
