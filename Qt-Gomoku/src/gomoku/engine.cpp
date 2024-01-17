@@ -221,29 +221,31 @@ void Engine::updateScore(const QPoint &point)
     const std::reference_wrapper<std::string> blackLines[] = {blackShapes[y], blackShapes[x + 15], blackShapes[y - x + 40], blackShapes[valid[3] ? x + y + 47 : 0]};
     const std::reference_wrapper<std::string> whiteLines[] = {whiteShapes[y], whiteShapes[x + 15], whiteShapes[y - x + 40], whiteShapes[valid[3] ? x + y + 47 : 0]};
 
-    for (int i = 0; i < 4 && valid[i]; ++i) {
-        if (const auto &cacheScore = largeCache[blackLines[i]]) {
-            blackLineScores[i] = *cacheScore;
-        } else {
-            const auto &shapes = trie.parse_text(blackLines[i]);
+    for (int i = 0; i < 4; ++i) {
+        if (valid[i]) {
+	        if (const auto &cacheScore = largeCache[blackLines[i]]) {
+	            blackLineScores[i] = *cacheScore;
+	        } else {
+	            const auto &shapes = trie.parse_text(blackLines[i]);
 
-            for (const auto &shape : shapes) {
-                blackLineScores[i] += shapeScoreTable[shape.get_keyword()];
-            }
+	            for (const auto &shape : shapes) {
+	                blackLineScores[i] += shapeScoreTable[shape.get_keyword()];
+	            }
 
-            largeCache.insert(blackLines[i], new int(blackLineScores[i]));
-        }
+	            largeCache.insert(blackLines[i], new int(blackLineScores[i]));
+	        }
 
-        if (const auto &cacheScore = largeCache[whiteLines[i]]) {
-            whiteLineScores[i] = *cacheScore;
-        } else {
-            const auto &shapes = trie.parse_text(whiteLines[i]);
+	        if (const auto &cacheScore = largeCache[whiteLines[i]]) {
+	            whiteLineScores[i] = *cacheScore;
+	        } else {
+	            const auto &shapes = trie.parse_text(whiteLines[i]);
 
-            for (const auto &shape : shapes) {
-                whiteLineScores[i] += shapeScoreTable[shape.get_keyword()];
-            }
+	            for (const auto &shape : shapes) {
+	                whiteLineScores[i] += shapeScoreTable[shape.get_keyword()];
+	            }
 
-            largeCache.insert(whiteLines[i], new int(whiteLineScores[i]));
+	            largeCache.insert(whiteLines[i], new int(whiteLineScores[i]));
+	        }
         }
     }
 
@@ -269,7 +271,7 @@ void Engine::updateScore(const QPoint &point)
 }
 
 bool Engine::inCheck(const Stone &stone)
-{
+{   
     int firstCount = 0;
     const auto &firstShapes = stone == Black ? blackShapes : whiteShapes;
     const auto &secondShapes = stone == Black ? whiteShapes : blackShapes;
@@ -304,19 +306,19 @@ bool Engine::inCheck(const Stone &stone)
 
     for (int i = 0; i < 72; ++i) {
         if (secondScores[i] >= Three) {
-            const auto &shapes = checkTrie.parse_text(secondShapes[i]);
+    		const auto &shapes = checkTrie.parse_text(secondShapes[i]);
 
-            for (const auto &shape : shapes) {
-                const auto &keyword = shape.get_keyword();
-                const auto &count = std::count(keyword.cbegin(), keyword.cend(), '1');
+    		for (const auto &shape : shapes) {
+    			const auto &keyword = shape.get_keyword();
+    			const auto &count = std::count(keyword.cbegin(), keyword.cend(), '1');
 
-                if (count > secondCount) {
-                    line = i;
-                    start = shape.get_start();
-                    end = shape.get_end();
-                    secondCount = count;
-                }
-            }
+    			if (count > secondCount) {
+    				line = i;
+    				start = shape.get_start();
+    				end = shape.get_end();
+    				secondCount = count;
+    			}
+    		}
         }
     }
 
