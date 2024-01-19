@@ -19,8 +19,12 @@ void GameWindow::mouseMoveEvent(QMouseEvent *event)
     const auto x = event->pos().x();
     const auto y = event->pos().y();
 
+    update((move.y() + 1) * 40 - 21, (move.x() + 1) * 40 - 1, 42, 42);
+
     move.setX((y - 40) / 40);
     move.setY((x - 20) / 40);
+
+    update((move.y() + 1) * 40 - 21, (move.x() + 1) * 40 - 1, 42, 42);
 
     if (x < 20 || x >= 620 || y < 40 || y >= 640) {
         setCursor(Qt::ArrowCursor);
@@ -31,8 +35,6 @@ void GameWindow::mouseMoveEvent(QMouseEvent *event)
             setCursor(Qt::ArrowCursor);
         }
     }
-
-    update();
 }
 
 void GameWindow::mouseReleaseEvent(QMouseEvent *event)
@@ -62,11 +64,13 @@ void GameWindow::mouseReleaseEvent(QMouseEvent *event)
         return;
     }
 
+    update((last.y() + 1) * 40 - 21, (last.x() + 1) * 40 - 1, 42, 42);
+
     ui.undo->setEnabled(true);
     last = engine.lastMove();
     ++step;
 
-    repaint();
+    update((last.y() + 1) * 40 - 21, (last.x() + 1) * 40 - 1, 42, 42);
 
     const auto gameState = engine.gameState(move, playerStone);
 
@@ -93,7 +97,7 @@ void GameWindow::mouseReleaseEvent(QMouseEvent *event)
     if (gameType == PVC) {
         ui.undo->setDisabled(true);
 
-        repaint();
+        repaint((last.y() + 1) * 40 - 21, (last.x() + 1) * 40 - 1, 42, 42);
         setUpdatesEnabled(false);
 
         future = QtConcurrent::run([ &, this]() {

@@ -45,8 +45,19 @@ Engine::Engine()
         }
     }
 
-    blackShapes.fill(std::string(15, '0'));
-    whiteShapes.fill(std::string(15, '0'));
+    std::fill_n(blackShapes.begin(), 30, std::string(15, '0'));
+    std::fill_n(whiteShapes.begin(), 30, std::string(15, '0'));
+
+    for (int i = 5; i <= 15; ++i) {
+	    blackShapes[25 + i] = std::string(i, '0');
+        whiteShapes[25 + i] = std::string(i, '0');
+        blackShapes[35 + i] = std::string(20 - i, '0');
+        whiteShapes[35 + i] = std::string(20 - i, '0');
+        blackShapes[46 + i] = std::string(i, '0');
+        whiteShapes[46 + i] = std::string(i, '0');
+        blackShapes[56 + i] = std::string(20 - i, '0');
+        whiteShapes[56 + i] = std::string(20 - i, '0');
+    }
 }
 
 bool Engine::isLegal(const QPoint &point)
@@ -350,11 +361,7 @@ bool Engine::inCheck(const Stone &stone)
                 point.setY(qMax(0, line - 61) + index);
             }
 
-            if (isLegal(point)) {
-                escapes.insert(point);
-            } else {
-                return false;
-            }
+        	escapes.insert(point);
         }
 
         return true;
@@ -365,6 +372,8 @@ bool Engine::inCheck(const Stone &stone)
 
 int Engine::evaluatePoint(const QPoint &point) const
 {
+    const auto &x = point.x();
+    const auto &y = point.y();
     int score = 0;
 
     for (int i = 0; i < 4; ++i) {
@@ -451,8 +460,6 @@ int Engine::lineScore(const QPoint &point, const int &direction) const
         blackLine[qMin(y, 14 - x)] = '1';
         whiteLine[qMin(y, 14 - x)] = '1';
 
-        break;
-    default:
         break;
     }
 
