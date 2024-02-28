@@ -1,15 +1,19 @@
 # Qt-Gomoku
-Game UI is from https://github.com/Kenny-ting/Chess-Game-2020, Free-style Gomoku rule.
+Free-style Gomoku rule.
 ## Requirements
 - Qt 6.5.2
-## Algorithm references
-- https://github.com/kimlongli/FiveChess
-- https://hci.iwr.uni-heidelberg.de/system/files/private/downloads/1935772097/report_qingyang-cao_enhanced-forward-pruning.pdf
+## References
+- Enhanced Forward Pruning (Search)
+- https://github.com/kimlongli/FiveChess (Evaluation)
+- https://github.com/Kenny-ting/Chess-Game-2020 (UI)
 ## Features
-- Written in modern C++.
-- Using async way to call engine to avoid main thread blocking.
-- Introducing null move pruning and PVS.
-- Searching depth reaches 10 ply.
+- Using async way to search to avoid main thread blocking.
+- Searching depth reaches 12 ply.
+- Principal Variation Search (PVS)
+- Transposition table
+- Null Move Pruning
+- Multi-Cut
+- Extensions
 ## Homepage
 ![image](https://github.com/SXKA/Qt-Gomoku/blob/master/Qt-Gomoku/resource/picture/mainwindow.png)
 ## Game UI
