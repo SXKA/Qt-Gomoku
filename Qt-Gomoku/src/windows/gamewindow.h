@@ -1,21 +1,16 @@
 #ifndef GAMEWINDOW_H
 #define GAMEWINDOW_H
 
-#include "../gomoku/engine.h"
+#include "../search/engine.h"
 #include "ui_GameWindow.h"
-#include "MainWindow.h"
-#include <QCursor>
-#include <QtEvents>
-#include <QtConcurrent/QtConcurrent>
+
 #include <QFuture>
 #include <QFutureWatcher>
 #include <QMainWindow>
-#include <QPainter>
 #include <QPoint>
 
-
-#define PVC false
-#define PVP true
+constexpr auto PVC = false;
+constexpr auto PVP = true;
 
 class GameWindow : public QMainWindow
 {
@@ -26,14 +21,14 @@ private:
     QFuture<void> future;
     QPoint last;
     QPoint move;
-    Gomoku::Engine engine;
-    Gomoku::Stone playerStone;
+    Search::Engine engine;
+    Stone playerStone;
     int step;
     bool gameOver;
     bool gameType;
 public:
     GameWindow(QWidget *parent = nullptr);
-    void setGame(const Gomoku::Stone &stone, const bool &type);
+    void setGame(const Stone &stone, const bool &type);
 
 protected:
     void mouseMoveEvent(QMouseEvent *event) override;

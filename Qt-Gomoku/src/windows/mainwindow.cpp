@@ -1,5 +1,7 @@
 #include "mainwindow.h"
 
+#include <QMessageBox>
+
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
 {
@@ -13,14 +15,14 @@ void MainWindow::on_exit_released()
 
 void MainWindow::on_pvc_released()
 {
-    Gomoku::Stone playerStone;
+    Stone playerStone;
 
     if (QMessageBox::question(nullptr, "Stone", "Black? ", QMessageBox::Yes | QMessageBox::No,
                               QMessageBox::NoButton) ==
             QMessageBox::Yes) {
-        playerStone = Gomoku::Black;
+        playerStone = Black;
     } else {
-        playerStone = Gomoku::White;
+        playerStone = White;
     }
 
     auto *gameWindow = new GameWindow;
@@ -38,7 +40,7 @@ void MainWindow::on_pvp_released()
     const auto gameWindow = new GameWindow;
 
     gameWindow->setFixedSize(640, 660);
-    gameWindow->setGame(Gomoku::Black, PVP);
+    gameWindow->setGame(Black, PVP);
     gameWindow->setWindowFlag(Qt::WindowMaximizeButtonHint, false);
     gameWindow->show();
 

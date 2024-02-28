@@ -62,10 +62,13 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
     </ClCompile>
     <Link>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <Profile>false</Profile>
+      <LinkTimeCodeGeneration>
+      </LinkTimeCodeGeneration>
     </Link>
     <ProjectReference>
       <LinkLibraryDependencies>false</LinkLibraryDependencies>
@@ -105,12 +108,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="src\gomoku\engine.cpp" />
-    <ClCompile Include="src\gomoku\movesgenerator.cpp" />
+    <ClCompile Include="src\evaluation\evaluator.cpp" />
+    <ClCompile Include="src\game\movesgenerator.cpp" />
     <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\search\engine.cpp" />
+    <ClCompile Include="src\search\transpositiontable.cpp" />
     <ClCompile Include="src\windows\gamewindow.cpp" />
     <ClCompile Include="src\windows\mainwindow.cpp" />
-    <ClCompile Include="src\zobrist\transpositiontable.cpp" />
   </ItemGroup>
   <ItemGroup>
     <QtRcc Include="resource\mainwindow.qrc" />
@@ -121,10 +125,11 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\algorithm\aho_corasick.hpp" />
-    <ClInclude Include="src\gomoku\engine.h" />
-    <ClInclude Include="src\gomoku\movesgenerator.h" />
-    <ClInclude Include="src\gomoku\stone.h" />
-    <ClInclude Include="src\zobrist\transpositiontable.h" />
+    <ClInclude Include="src\core\types.h" />
+    <ClInclude Include="src\evaluation\evaluator.h" />
+    <ClInclude Include="src\game\movesgenerator.h" />
+    <ClInclude Include="src\search\engine.h" />
+    <ClInclude Include="src\search\transpositiontable.h" />
     <QtMoc Include="src\windows\mainwindow.h" />
     <QtMoc Include="src\windows\gamewindow.h" />
   </ItemGroup>

@@ -24,22 +24,31 @@
     <Filter Include="Header Files\windows">
       <UniqueIdentifier>{4308dce2-5277-44a8-aa23-5767589ee0df}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files\zobrist">
-      <UniqueIdentifier>{fc2f25fa-47ba-4e9c-90aa-bfa97807618a}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source Files\windows">
       <UniqueIdentifier>{d7b646ed-61e8-4d2f-8baf-143ba82fdabc}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\zobrist">
-      <UniqueIdentifier>{bd7d5a1b-3c70-4724-b999-6e1e06e214eb}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Header Files\gomoku">
-      <UniqueIdentifier>{7adcb6ff-43c6-4afc-bc62-61c7f0d7ff5f}</UniqueIdentifier>
     </Filter>
     <Filter Include="Header Files\algorithm">
       <UniqueIdentifier>{7050c27f-8df3-41d6-822c-36a0dc5eacd9}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\gomoku">
+    <Filter Include="Header Files\evaluation">
+      <UniqueIdentifier>{eb79d681-ac32-4528-be0f-a7bf81347341}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\evaluation">
+      <UniqueIdentifier>{7a81152d-4807-4dff-bb25-13ccaf3c5147}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\search">
+      <UniqueIdentifier>{7adcb6ff-43c6-4afc-bc62-61c7f0d7ff5f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\game">
+      <UniqueIdentifier>{e5906149-92d8-447f-87b9-8bb2c39ed1b2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\game">
+      <UniqueIdentifier>{2d99224b-bc38-491f-8015-b2bd9858b301}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\core">
+      <UniqueIdentifier>{74f949a3-8f9a-48a1-9c5f-a83ffac0a354}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\search">
       <UniqueIdentifier>{72043acd-14d8-45f1-9457-99c657210673}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
@@ -53,14 +62,17 @@
     <ClCompile Include="src\main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\gomoku\engine.cpp">
-      <Filter>Source Files\gomoku</Filter>
+    <ClCompile Include="src\evaluation\evaluator.cpp">
+      <Filter>Source Files\evaluation</Filter>
     </ClCompile>
-    <ClCompile Include="src\gomoku\movesgenerator.cpp">
-      <Filter>Source Files\gomoku</Filter>
+    <ClCompile Include="src\search\engine.cpp">
+      <Filter>Source Files\search</Filter>
     </ClCompile>
-    <ClCompile Include="src\zobrist\transpositiontable.cpp">
-      <Filter>Source Files\zobrist</Filter>
+    <ClCompile Include="src\game\movesgenerator.cpp">
+      <Filter>Source Files\game</Filter>
+    </ClCompile>
+    <ClCompile Include="src\search\transpositiontable.cpp">
+      <Filter>Source Files\search</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -80,17 +92,20 @@
     <ClInclude Include="src\algorithm\aho_corasick.hpp">
       <Filter>Header Files\algorithm</Filter>
     </ClInclude>
-    <ClInclude Include="src\gomoku\engine.h">
-      <Filter>Header Files\gomoku</Filter>
+    <ClInclude Include="src\evaluation\evaluator.h">
+      <Filter>Header Files\evaluation</Filter>
     </ClInclude>
-    <ClInclude Include="src\gomoku\movesgenerator.h">
-      <Filter>Header Files\gomoku</Filter>
+    <ClInclude Include="src\search\engine.h">
+      <Filter>Header Files\search</Filter>
     </ClInclude>
-    <ClInclude Include="src\gomoku\stone.h">
-      <Filter>Header Files\gomoku</Filter>
+    <ClInclude Include="src\game\movesgenerator.h">
+      <Filter>Header Files\game</Filter>
     </ClInclude>
-    <ClInclude Include="src\zobrist\transpositiontable.h">
-      <Filter>Header Files\zobrist</Filter>
+    <ClInclude Include="src\core\types.h">
+      <Filter>Header Files\core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\search\transpositiontable.h">
+      <Filter>Header Files\search</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

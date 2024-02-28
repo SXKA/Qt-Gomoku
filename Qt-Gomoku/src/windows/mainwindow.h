@@ -3,6 +3,7 @@
 
 #include "ui_MainWindow.h"
 #include "GameWindow.h"
+
 #include <QMainWindow>
 
 class MainWindow : public QMainWindow
