@@ -1,6 +1,6 @@
 # Qt-Gomoku
-[![EN](https://img.shields.io/badge/lang-EN-red.svg)](https://github.com/SXKA/Qt-Gomoku/blob/master/Readme.md)
-[![ZH](https://img.shields.io/badge/lang-ZH-green.svg)](https://github.com/SXKA/Qt-Gomoku/blob/master/Readme-zh-TW.md)
+[![EN](https://img.shields.io/badge/lang-EN-red.svg)](https://github.com/SXKA/Qt-Gomoku/blob/master/README.md)
+[![ZH](https://img.shields.io/badge/lang-ZH-green.svg)](https://github.com/SXKA/Qt-Gomoku/blob/master/README-ZH-TW.md)
 
 Free-style Gomoku rule.
 ## Requirements
