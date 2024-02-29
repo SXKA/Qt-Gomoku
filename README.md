@@ -1,4 +1,5 @@
-# Qt-Gomoku
+# <div align=center>[English](https://github.com/SXKA/Qt-Gomoku/blob/master/Readme.md) | [Chinese](https://github.com/SXKA/Qt-Gomoku/blob/master/Readme-zh-TW.md)</div>
+## Qt-Gomoku
 Free-style Gomoku rule.
 ## Requirements
 - Qt 6.5.2
