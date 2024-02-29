@@ -1,4 +1,7 @@
 # Qt五子棋
+[![英文](https://img.shields.io/badge/lang-英文-red.svg)](https://github.com/SXKA/Qt-Gomoku/blob/master/Readme.md)
+[![中文](https://img.shields.io/badge/lang-中文-green.svg)](https://github.com/SXKA/Qt-Gomoku/blob/master/Readme-zh-TW.md)
+
 無禁手規則
 # 需求
 - Qt 6.5.2
@@ -15,6 +18,6 @@
 - Multi-Cut
 - 延伸
 ## 主介面
-![image](https://github.com/SXKA/Qt-Gomoku/blob/master/Qt-Gomoku/resource/picture/mainwindow.png)
+![圖片](https://github.com/SXKA/Qt-Gomoku/blob/master/Qt-Gomoku/resource/picture/mainwindow.png)
 ## 遊戲介面
 <div align=center><img src=https://github.com/SXKA/Qt-Gomoku/blob/master/Qt-Gomoku/resource/picture/gamewindow.png></div>
