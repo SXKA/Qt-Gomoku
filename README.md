@@ -1,5 +1,7 @@
-# <div align=center>[English](https://github.com/SXKA/Qt-Gomoku/blob/master/Readme.md) | [Chinese](https://github.com/SXKA/Qt-Gomoku/blob/master/Readme-zh-TW.md)</div>
-## Qt-Gomoku
+# Qt-Gomoku
+[![EN](https://img.shields.io/badge/lang-EN-red.svg)](https://github.com/SXKA/Qt-Gomoku/blob/master/Readme.md)
+[![ZH](https://img.shields.io/badge/lang-ZH-green.svg)](https://github.com/SXKA/Qt-Gomoku/blob/master/Readme-zh-TW.md)
+
 Free-style Gomoku rule.
 ## Requirements
 - Qt 6.5.2
