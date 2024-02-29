@@ -3,7 +3,7 @@
 [![繁體中文](https://img.shields.io/badge/lang-繁體中文-green.svg)](https://github.com/SXKA/Qt-Gomoku/blob/master/README.zh-TW.md)
 
 無禁手規則
-# 需求
+## 需求
 - Qt 6.5.2
 ## 參考
 - Enhanced Forward Pruning (搜尋)
