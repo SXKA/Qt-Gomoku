@@ -1,6 +1,6 @@
 # Qt五子棋
 [![英文](https://img.shields.io/badge/lang-英文-red.svg)](https://github.com/SXKA/Qt-Gomoku/blob/master/README.md)
-[![中文](https://img.shields.io/badge/lang-中文-green.svg)](https://github.com/SXKA/Qt-Gomoku/blob/master/README.zh-TW.md)
+[![繁體中文](https://img.shields.io/badge/lang-繁體中文-green.svg)](https://github.com/SXKA/Qt-Gomoku/blob/master/README.zh-TW.md)
 
 無禁手規則
 # 需求
