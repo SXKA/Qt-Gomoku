@@ -3,6 +3,8 @@
 [![繁體中文](https://img.shields.io/badge/語言-繁體中文-green.svg)](https://github.com/SXKA/Qt-Gomoku/blob/master/README.zh-TW.md)
 
 無禁手規則
+
+詳細介紹：https://github.com/SXKA/Qt-Gomoku/wiki
 ## 需求
 - Qt 6.5.2
 ## 參考
