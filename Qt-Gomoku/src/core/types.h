@@ -1,5 +1,5 @@
-#ifndef STONE_H
-#define STONE_H
+#ifndef TYPES_H
+#define TYPES_H
 
 enum Score {
     One = 20,
