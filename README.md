@@ -3,6 +3,8 @@
 [![ZH](https://img.shields.io/badge/lang-ZH--HANT--TW-green.svg)](https://github.com/SXKA/Qt-Gomoku/blob/master/README.zh-TW.md)
 
 Free-style Gomoku rule.
+
+Detail: https://github.com/SXKA/Qt-Gomoku/wiki (Chinese)
 ## Requirements
 - Qt 6.5.2
 ## References
