@@ -64,6 +64,8 @@ QHash<QPoint, QPair<int, int>> MovesGenerator::generate() const
 {
     QHash<QPoint, QPair<int, int>> m;
 
+    m.reserve(moves.size());
+
     for (auto it = moves.cbegin(); it != moves.cend(); ++it) {
         m.insert(it.key(), {std::reduce(it.value().first.cbegin(), it.value().first.cend()), std::reduce(it.value().second.cbegin(), it.value().second.cend())});
     }

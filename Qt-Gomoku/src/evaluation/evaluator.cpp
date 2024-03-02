@@ -134,44 +134,37 @@ QPair<int, int> Evaluator::evaluatePoint(const QPoint &point, const int &directi
         return {0, 0};
     }
 
+    int line;
     int offset;
-    std::string blackLine;
-    std::string whiteLine;
 
     switch (direction) {
     case 0:
+        line = y;
         offset = x - 4;
-        blackLine = (*blackShapes)[y];
-        whiteLine = (*whiteShapes)[y];
-        blackLine[x] = '1';
-        whiteLine[x] = '1';
 
         break;
     case 1:
+        line = x + 15;
         offset = y - 4;
-        blackLine = (*blackShapes)[x + 15];
-        whiteLine = (*whiteShapes)[x + 15];
-        blackLine[y] = '1';
-        whiteLine[y] = '1';
 
         break;
     case 2:
+        line = y - x + 40;
         offset = qMin(x, y) - 4;
-        blackLine = (*blackShapes)[y - x + 40];
-        whiteLine = (*whiteShapes)[y - x + 40];
-        blackLine[qMin(x, y)] = '1';
-        whiteLine[qMin(x, y)] = '1';
 
         break;
     case 3:
+        line = x + y + 47;
         offset = qMin(y, 14 - x) - 4;
-        blackLine = (*blackShapes)[x + y + 47];
-        whiteLine = (*whiteShapes)[x + y + 47];
-        blackLine[qMin(y, 14 - x)] = '1';
-        whiteLine[qMin(y, 14 - x)] = '1';
 
         break;
     }
+
+    std::string blackLine = (*blackShapes)[line];
+    std::string whiteLine = (*whiteShapes)[line];
+
+    blackLine[offset + 4] = '1';
+    whiteLine[offset + 4] = '1';
 
     int count = offset < 0 ? offset + 9 : 9;
 

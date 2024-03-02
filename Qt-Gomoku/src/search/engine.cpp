@@ -15,14 +15,13 @@ std::array<int, 226> moveCounts;
 
 inline bool operator< (const QPoint &lhs, const QPoint &rhs)
 {
-    return lhs.y() == rhs.y() ? lhs.x() < rhs.x() : rhs.y() < lhs.y();
+    return lhs.y() == rhs.y() ? lhs.x() < rhs.x() : lhs.y() < rhs.y();
 }
 
 Engine::Engine()
     : evaluator(&blackShapes, &whiteShapes)
     , generator(&evaluator, &board)
-    , escapes({})
-, board({})
+    , board({})
 , blackShapes({})
 , whiteShapes({})
 , checkSum(transpositionTable.hash())
@@ -189,9 +188,8 @@ QPoint Engine::lastMove() const
     return moveHistory.empty() ? QPoint(-1, -1) : moveHistory.top();
 }
 
-bool Engine::inThreat(const Stone &stone)
+bool Engine::inThreat(const Stone &stone, QHash<QPoint, QPair<int, int>> &moves)
 {
-    const auto moves = generator.generate();
     auto blackMaxMove = moves.cbegin();
     auto whiteMaxMove = moves.cbegin();
 
@@ -216,7 +214,11 @@ bool Engine::inThreat(const Stone &stone)
     }
 
     if (secondMaxScore >= Five) {
-        escapes.insert(secondMaxMove.key(), secondMaxMove.value());
+        const auto point = secondMaxMove.key();
+        const auto scores = secondMaxMove.value();
+
+        moves.clear();
+        moves.insert(point, scores);
 
         return true;
     }
@@ -232,11 +234,11 @@ int Engine::pvs(const Stone &stone, int alpha, const int &beta, const int &depth
     QPoint goodMove{-1, -1};
 
     if (nodeType != PVNode) {
-        if (const auto probeValue = transpositionTable.probe(transpositionTable.hash(), alpha, beta, depth,
-                                                             goodMove); probeValue != MISS) {
+        if (const auto probeScore = transpositionTable.probe(transpositionTable.hash(), alpha, beta, depth,
+                                                             goodMove); probeScore != MISS) {
             ++hitNodeCount;
 
-            return probeValue >= beta ? beta : probeValue;
+            return probeScore >= beta ? beta : probeScore;
         }
     }
 
@@ -251,11 +253,16 @@ int Engine::pvs(const Stone &stone, int alpha, const int &beta, const int &depth
         return Min + (LIMIT_DEPTH - depth) + 1;
     }
 
-    if (depth <= 0 || generator.empty()) {
+    if (generator.empty()) {
         return firstScore - secondScore;
     }
 
-    const bool extend = inThreat(stone);
+    auto moves = generator.generate();
+    const bool extend = inThreat(stone, moves);
+
+    if (depth <= 0 && !extend) {
+        return firstScore - secondScore;
+    }
 
     if (nodeType != PVNode && !extend && nullOk) {
         R = depth >= 6 ? 3 : 2;
@@ -268,19 +275,10 @@ int Engine::pvs(const Stone &stone, int alpha, const int &beta, const int &depth
         }
     }
 
-    if (depth >= IID_DEPTH && !extend && goodMove == QPoint(-1, -1)) {
-        pvs(stone, alpha, beta, depth - IID_R, nodeType, nullOk);
-
-        transpositionTable.probe(transpositionTable.hash(), alpha, beta, depth, goodMove);
-    }
-
     bool heuristic = false;
     QList<QPair<int, QPoint>> candidates;
-    auto moves = generator.generate();
 
-    if (extend) {
-        moves = std::move(escapes);
-    } else {
+    if (!extend) {
         heuristic = moves.remove(goodMove);
     }
 
@@ -301,9 +299,8 @@ int Engine::pvs(const Stone &stone, int alpha, const int &beta, const int &depth
         candidates.emplace_back(blackScore + whiteScore, it.key());
     }
 
-    if (!extend) {
+    if (!extend && !moves.empty()) {
         const auto &firstMaxMove = stone == Black ? blackMaxMove : whiteMaxMove;
-        const auto &secondMaxMove = stone == Black ? whiteMaxMove : blackMaxMove;
         const auto &firstMaxScore = stone == Black ? blackMaxMove.value().first :
                                     whiteMaxMove.value().second;
         const auto &secondMaxScore = stone == Black ? whiteMaxMove.value().second :
@@ -317,8 +314,10 @@ int Engine::pvs(const Stone &stone, int alpha, const int &beta, const int &depth
             auto it = candidates.cbegin();
 
             while (it != candidates.cend()) {
-                if ((stone == Black ? moves[it->second].first : moves[it->second].second) < Three
-                        && it->second != secondMaxMove.key()) {
+                const auto &firstMoveScore = stone == Black ? moves[it->second].first : moves[it->second].second;
+                const auto &secondMoveScore = stone == Black ? moves[it->second].second : moves[it->second].first;
+
+                if (firstMoveScore < Four && secondMoveScore < OpenFours) {
                     it = candidates.erase(it);
                 } else {
                     ++it;
@@ -333,13 +332,13 @@ int Engine::pvs(const Stone &stone, int alpha, const int &beta, const int &depth
         candidates.emplaceFront(INT_MAX, goodMove);
     }
 
-    if (nodeType != PVNode && depth > MCA_R && !extend) {
+    if (nodeType == CutNode && depth > MC_R && candidates.size() >= MC_M) {
         int c = 0;
 
-        for (int m = 0; m < qMin(MCA_M, candidates.size()); ++m) {
+        for (int m = 0; m < MC_M; ++m) {
             move(candidates[m].second, stone);
 
-            const auto score = -pvs(static_cast<const Stone>(-stone), -beta, -alpha, depth - MCA_R - 1,
+            const auto score = -pvs(static_cast<const Stone>(-stone), -beta, -alpha, depth - MC_R - 1,
                                     static_cast<const NodeType>(-nodeType));
 
             undo(1);
@@ -351,7 +350,7 @@ int Engine::pvs(const Stone &stone, int alpha, const int &beta, const int &depth
                     return score;
                 }
 
-                if (++c >= MCA_C) {
+                if (++c >= MC_C) {
                     ++cutNodeCount;
 
                     return beta;
@@ -360,7 +359,7 @@ int Engine::pvs(const Stone &stone, int alpha, const int &beta, const int &depth
         }
     }
 
-    if (candidates.size() > moveCounts[depth] && !extend) {
+    if (!extend && candidates.size() > moveCounts[depth]) {
         candidates.resize(moveCounts[depth]);
     }
 

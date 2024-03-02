@@ -14,12 +14,10 @@
 #include <string>
 
 namespace Search {
-inline int IID_DEPTH = 10;
-inline int IID_R = 2;
 inline int LIMIT_DEPTH = 12;
-inline int MCA_C = 2;
-inline int MCA_M = 10;
-inline int MCA_R = 2;
+inline int MC_C = 2;
+inline int MC_M = 10;
+inline int MC_R = 2;
 inline int R = 3;
 
 enum NodeType {
@@ -32,7 +30,6 @@ private:
     Evaluation::Evaluator evaluator;
     Game::MovesGenerator generator;
     TranspositionTable transpositionTable;
-    QHash<QPoint, QPair<int, int>> escapes;
     QStack<QPoint> moveHistory;
     QPoint bestPoint;
     std::array<std::array<Stone, 15>, 15> board;
@@ -53,7 +50,7 @@ public:
     [[nodiscard]] QPoint lastMove() const;
 
 private:
-    bool inThreat(const Stone &stone);
+    static bool inThreat(const Stone &stone, QHash<QPoint, QPair<int, int>> &moves);
     int pvs(const Stone &stone, int alpha, const int &beta, const int &depth, const NodeType &nodeType,
             const bool &nullOk = true);
 };
