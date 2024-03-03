@@ -79,7 +79,7 @@ void GameWindow::mouseReleaseEvent(QMouseEvent *event)
 
     update((last.y() + 1) * 40 - 21, (last.x() + 1) * 40 - 1, 42, 42);
 
-    if (const auto gameState = engine.gameState(move, playerStone); gameState == Draw
+    if (const auto gameState = engine.gameStatus(move, playerStone); gameState == Draw
             || gameState == Win) {
         gameOver = true;
 
@@ -243,7 +243,7 @@ void GameWindow::on_async_finished()
 
     const auto stone = static_cast<const Stone>(-playerStone);
 
-    if (const auto gameState = engine.gameState(engine.lastMove(), stone); gameState == Draw
+    if (const auto gameState = engine.gameStatus(engine.lastMove(), stone); gameState == Draw
             || gameState == Win) {
         gameOver = true;
 

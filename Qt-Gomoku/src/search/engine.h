@@ -45,7 +45,7 @@ public:
     void move(const QPoint &point, const Stone &stone);
     void undo(const int &step);
     [[nodiscard]] Stone checkStone(const QPoint &point) const;
-    [[nodiscard]] State gameState(const QPoint &point, const Stone &stone) const;
+    [[nodiscard]] Status gameStatus(const QPoint &point, const Stone &stone) const;
     [[nodiscard]] QPoint bestMove(const Stone &stone);
     [[nodiscard]] QPoint lastMove() const;
 

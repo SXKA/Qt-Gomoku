@@ -12,7 +12,7 @@ enum Score {
     Min = -Max
 };
 
-enum State { Draw = -1, Undecided, Win };
+enum Status { Draw = -1, Undecided, Win };
 
 enum Stone { Black = -1, Empty, White};
 

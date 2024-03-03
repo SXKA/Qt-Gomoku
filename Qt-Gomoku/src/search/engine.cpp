@@ -117,7 +117,7 @@ Stone Engine::checkStone(const QPoint &point) const
     return board[point.x()][point.y()];
 }
 
-State Engine::gameState(const QPoint &point, const Stone &stone) const
+Status Engine::gameStatus(const QPoint &point, const Stone &stone) const
 {
     constexpr std::array<int, 2> d = {-1, 1};
     constexpr std::array<int, 4> dx = {1, 0, 1, 1};
