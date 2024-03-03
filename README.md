@@ -26,7 +26,7 @@ engine.move({7, 7}, Black);
 // Search for the best move for white.
 const auto bestMove = engine.bestMove(White);
 
-// Check the best move is legal.
+// Check the best move is legal. (Should be legal)
 const auto legal = Search::Engine::isLegal(bestMove);
 
 if (legal) {
