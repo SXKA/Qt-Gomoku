@@ -55,8 +55,6 @@ void TranspositionTable::insert(const unsigned long long &hashKey, const HashEnt
         return;
     }
 
-
-
     replacement->lock = hashKey;
     replacement->type = type;
     replacement->move = move == QPoint(-1, -1) ? replacement->move : move;
