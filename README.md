@@ -5,6 +5,54 @@
 Free-style Gomoku rule.
 
 Detail: https://github.com/SXKA/Qt-Gomoku/wiki (Chinese)
+# Usage
+Include src/search/engine.h to use search engine.
+
+
+```C++
+// Create a engine.
+Search::Engine engine;
+
+// Set search parameters.
+Search::LIMIT_DEPTH = depth; // Extensions will not be limited.
+Search::MC_C = mc_c; // Multi-Cut number of cutoffs.
+Search::MC_M = mc_m; // Multi-Cut number of moves.
+Search::MC_R = mc_r; // Multi-Cut depth reduction.
+Search::R = r;       // Null move pruning depth reduction.
+
+// Make a move for black.
+engine.move({7, 7}, Black);
+
+// Search for the best move for white.
+const auto bestMove = engine.bestMove(White);
+
+// Check the best move is legal. (Engine::bestMove return should be legal.)
+const auto legal = Search::Engine::isLegal(bestMove);
+
+if (legal) {
+    // Make a move for white.
+    engine.move(bestMove, white);
+}
+
+// Get Gomoku game status.
+const auto status = engine.gameStatus(bestMove, White);
+
+// Determine whether to continue the game based on the status.
+switch (status) {
+    case Draw:
+        // Dealing with draw and don't continue use the engine.
+        break;
+    case Undecided:
+        // Continue the game.
+        break;
+    case Win:
+        // Dealing with White's victory and don't continue use the engine.
+        break;
+}
+
+// Undo a move. Please make sure there are moves that can be undo.
+engine.undo(1);
+```
 ## Requirements
 - Qt 6.5.2
 ## References
