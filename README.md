@@ -31,7 +31,7 @@ const auto legal = Search::Engine::isLegal(bestMove);
 
 if (legal) {
     // Make a move for white.
-    engine.move(bestMove);
+    engine.move(bestMove, white);
 }
 
 // Get Gomoku game status.
