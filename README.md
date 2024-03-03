@@ -13,7 +13,7 @@ Include src/search/engine.h to use search engine.
 // Create a engine.
 Search::Engine engine;
 
-// Set engine parameters.
+// Set search parameters.
 Search::LIMIT_DEPTH = depth; // Extensions will not be limited.
 Search::MC_C = mc_c; // Multi-Cut number of cutoffs.
 Search::MC_M = mc_m; // Multi-Cut number of moves.
