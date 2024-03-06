@@ -4,7 +4,7 @@
 
 Free-style Gomoku rule.
 
-Detail: https://github.com/SXKA/Qt-Gomoku/wiki (Chinese)
+Detail: https://github.com/SXKA/Qt-Gomoku/wiki (Traditional Chinese)
 # Usage
 Include src/search/engine.h to use search engine.
 
