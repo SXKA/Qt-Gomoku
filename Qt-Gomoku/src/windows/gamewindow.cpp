@@ -2,7 +2,7 @@
 
 #include <QCursor>
 #include <QMessageBox>
-#include <QtConcurrent/QtConcurrent>
+#include <QtConcurrent>
 #include <QtEvents>
 #include <QPainter>
 
