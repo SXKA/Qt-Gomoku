@@ -4,7 +4,7 @@
 
 Free-style Gomoku rule.
 
-Detail: https://github.com/SXKA/Qt-Gomoku/wiki (Chinese)
+Detail: https://github.com/SXKA/Qt-Gomoku/wiki (Traditional Chinese)
 # Usage
 Include src/search/engine.h to use search engine.
 
@@ -31,7 +31,7 @@ const auto legal = Search::Engine::isLegal(bestMove);
 
 if (legal) {
     // Make a move for white.
-    engine.move(bestMove, white);
+    engine.move(bestMove, White);
 }
 
 // Get Gomoku game status.
