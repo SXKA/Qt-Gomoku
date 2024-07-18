@@ -18,7 +18,7 @@ Search::LIMIT_DEPTH = depth; // Extensions will not be limited.
 Search::MC_C = mc_c; // Multi-Cut number of cutoffs.
 Search::MC_M = mc_m; // Multi-Cut number of moves.
 Search::MC_R = mc_r; // Multi-Cut depth reduction.
-Search::R = r;       // Null move pruning depth reduction.
+Search::VCF_DEPTH = vcf_depth; // VCF depth.
 
 // Make a move for black.
 engine.move({7, 7}, Black);
@@ -60,9 +60,9 @@ engine.undo(1);
 - https://github.com/kimlongli/FiveChess (Evaluation)
 - https://github.com/Kenny-ting/Chess-Game-2020 (UI)
 ## Features
-- Using async way to search to avoid main thread blocking.
 - Searching depth reaches 12 ply.
 - Principal Variation Search (PVS)
+- Victory of Continuous Four (VCF) search
 - Transposition table
 - Null Move Pruning
 - Multi-Cut
