@@ -1,4 +1,5 @@
 #include "windows/mainwindow.h"
+
 #include <QStyleFactory>
 #include <QtWidgets/QApplication>
 

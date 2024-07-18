@@ -22,6 +22,7 @@ private:
     QStack<QHash<QPoint, QPair<std::array<int, 4>, std::array<int, 4>>>> history;
     QHash<QPoint, QPair<std::array<int, 4>, std::array<int, 4>>> moves;
     std::array<std::array<Stone, 15>, 15> *board;
+
 public:
     MovesGenerator() = delete;
     MovesGenerator(Evaluation::Evaluator *evaluator, std::array<std::array<Stone, 15>, 15> *board);
@@ -30,5 +31,5 @@ public:
     [[nodiscard]] bool empty() const;
     [[nodiscard]] QHash<QPoint, QPair<int, int>> generate() const;
 };
-}
+} // namespace Game
 #endif

@@ -1,23 +1,25 @@
-#include "../search/engine.h"
 #include "movesgenerator.h"
+#include "../search/engine.h"
 
 #include <numeric>
 
 using namespace Game;
 
 MovesGenerator::MovesGenerator(Evaluation::Evaluator *evaluator,
-                               std::array<std::array<Stone, 15>, 15> *board) : evaluator(evaluator), board(board) {}
+                               std::array<std::array<Stone, 15>, 15> *board)
+    : evaluator(evaluator)
+    , board(board)
+{}
 
 void MovesGenerator::move(const QPoint &point)
 {
-    const int r = moves.empty() ? 1 : 3;
-
     history.push(moves);
 
-    for (int i = -r; i <= r; ++i) {
-        for (int j = -r; j <= r; ++j) {
-            if (const auto neighborhood = point + QPoint(i, j); Search::Engine::isLegal(neighborhood)
-                    && (*board)[neighborhood.x()][neighborhood.y()] == Empty) {
+    for (int i = -3; i <= 3; ++i) {
+        for (int j = -3; j <= 3; ++j) {
+            if (const auto neighborhood = point + QPoint(i, j);
+                Search::Engine::isLegal(neighborhood)
+                && (*board)[neighborhood.x()][neighborhood.y()] == Empty) {
                 if (!moves.contains(neighborhood)) {
                     moves.insert(neighborhood, {{0, 0, 0, 0}, {0, 0, 0, 0}});
                 }
@@ -32,14 +34,14 @@ void MovesGenerator::move(const QPoint &point)
     for (size_t i = 0; i < 2; ++i) {
         for (int j = 0; j < 4; ++j) {
             for (int k = 1; k <= 4; ++k) {
-                if (const auto neighborhood = point + QPoint(d[i] * dx[j] * k, d[i] * dy[j] * k);
-                        Search::Engine::isLegal(neighborhood) && (*board)[neighborhood.x()][neighborhood.y()] == Empty) {
-                    if (moves.contains(neighborhood)) {
-                        const auto [blackScore, whiteScore] = evaluator->evaluatePoint(neighborhood, j);
+                if (const auto neighborhood = point + k * d[i] * QPoint{dx[j], dy[j]};
+                    moves.contains(neighborhood)) {
+                    auto &moveBlackScore = moves[neighborhood].first[j];
+                    auto &moveWhiteScore = moves[neighborhood].second[j];
+                    const auto [blackScore, whiteScore] = evaluator->evaluateMove(neighborhood, j);
 
-                        moves[neighborhood].first[j] = blackScore;
-                        moves[neighborhood].second[j] = whiteScore;
-                    }
+                    moveBlackScore = blackScore;
+                    moveWhiteScore = whiteScore;
                 }
             }
         }
@@ -67,7 +69,11 @@ QHash<QPoint, QPair<int, int>> MovesGenerator::generate() const
     m.reserve(moves.size());
 
     for (auto it = moves.cbegin(); it != moves.cend(); ++it) {
-        m.insert(it.key(), {std::reduce(it.value().first.cbegin(), it.value().first.cend()), std::reduce(it.value().second.cbegin(), it.value().second.cend())});
+        const auto [blackScores, whiteScores] = it.value();
+
+        m.insert(it.key(),
+                 {std::reduce(blackScores.cbegin(), blackScores.cend()),
+                  std::reduce(whiteScores.cbegin(), whiteScores.cend())});
     }
 
     return m;

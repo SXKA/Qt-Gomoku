@@ -1,8 +1,8 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
-#include "ui_MainWindow.h"
 #include "GameWindow.h"
+#include "ui_MainWindow.h"
 
 #include <QMainWindow>
 
@@ -17,6 +17,7 @@ protected slots:
     void on_exit_released();
     void on_pvc_released();
     void on_pvp_released();
+
 private:
     Ui::MainWindowClass ui_;
 };

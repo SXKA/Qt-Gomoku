@@ -17,9 +17,12 @@ void MainWindow::on_pvc_released()
 {
     Stone playerStone;
 
-    if (QMessageBox::question(nullptr, "Stone", "Black? ", QMessageBox::Yes | QMessageBox::No,
-                              QMessageBox::NoButton) ==
-            QMessageBox::Yes) {
+    if (QMessageBox::question(nullptr,
+                              "Stone",
+                              "Black? ",
+                              QMessageBox::Yes | QMessageBox::No,
+                              QMessageBox::NoButton)
+        == QMessageBox::Yes) {
         playerStone = Black;
     } else {
         playerStone = White;

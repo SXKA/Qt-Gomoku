@@ -2,10 +2,9 @@
 
 #include <QCursor>
 #include <QMessageBox>
+#include <QPainter>
 #include <QtConcurrent>
 #include <QtEvents>
-#include <QPainter>
-
 
 GameWindow::GameWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -23,8 +22,7 @@ GameWindow::GameWindow(QWidget *parent)
 
 void GameWindow::mouseMoveEvent(QMouseEvent *event)
 {
-    const auto x = event->pos().x();
-    const auto y = event->pos().y();
+    const auto &[x, y] = event->pos();
 
     update((move.y() + 1) * 40 - 21, (move.x() + 1) * 40 - 1, 42, 42);
 
@@ -50,10 +48,7 @@ void GameWindow::mouseReleaseEvent(QMouseEvent *event)
         return;
     }
 
-    const auto x = event->pos().x();
-    const auto y = event->pos().y();
-
-    if (x < 20 || x >= 620 || y < 30 || y >= 640) {
+    if (const auto &[x, y] = event->pos(); x < 20 || x >= 620 || y < 30 || y >= 640) {
         return;
     }
 
@@ -79,18 +74,26 @@ void GameWindow::mouseReleaseEvent(QMouseEvent *event)
 
     update((last.y() + 1) * 40 - 21, (last.x() + 1) * 40 - 1, 42, 42);
 
-    if (const auto gameState = engine.gameStatus(move, playerStone); gameState == Draw
-            || gameState == Win) {
+    if (const auto gameState = engine.gameStatus(move, playerStone);
+        gameState == Draw || gameState == Win) {
         gameOver = true;
 
         if (gameState == Draw) {
-            QMessageBox::information(nullptr, "Result", "Draw!", QMessageBox::Ok, QMessageBox::NoButton);
+            QMessageBox::information(nullptr,
+                                     "Result",
+                                     "Draw!",
+                                     QMessageBox::Ok,
+                                     QMessageBox::NoButton);
         } else {
             QString winner = playerStone == Black ? "Black" : "White";
 
             winner.append(" win!");
 
-            QMessageBox::information(nullptr, "Result", winner, QMessageBox::Ok, QMessageBox::NoButton);
+            QMessageBox::information(nullptr,
+                                     "Result",
+                                     winner,
+                                     QMessageBox::Ok,
+                                     QMessageBox::NoButton);
         }
 
         if (gameType == PVP) {
@@ -106,7 +109,7 @@ void GameWindow::mouseReleaseEvent(QMouseEvent *event)
         repaint((last.y() + 1) * 40 - 21, (last.x() + 1) * 40 - 1, 42, 42);
         setUpdatesEnabled(false);
 
-        future = QtConcurrent::run([ &, this]() {
+        future = QtConcurrent::run([this] {
             const auto stone = static_cast<const Stone>(-playerStone);
 
             engine.move(engine.bestMove(stone), stone);
@@ -119,7 +122,6 @@ void GameWindow::mouseReleaseEvent(QMouseEvent *event)
         playerStone = static_cast<const Stone>(-playerStone);
     }
 }
-
 
 void GameWindow::paintEvent(QPaintEvent *event)
 {
@@ -190,34 +192,57 @@ void GameWindow::paintEvent(QPaintEvent *event)
     painter.setPen(pen);
 
     if ((move.x() * 40 + 40) >= 40 && (move.x() * 40 + 40) <= 620 && (move.y() * 40 + 20) >= 20
-            && (move.y() * 40 +
-                20) <= 600) {
-        painter.drawLine((move.y() + 1) * 40 - 20, (move.x() + 1) * 40, (move.y() + 1) * 40 - 10,
+        && (move.y() * 40 + 20) <= 600) {
+        painter.drawLine((move.y() + 1) * 40 - 20,
+                         (move.x() + 1) * 40,
+                         (move.y() + 1) * 40 - 10,
                          (move.x() + 1) * 40);
-        painter.drawLine((move.y() + 1) * 40 + 20, (move.x() + 1) * 40, (move.y() + 1) * 40 + 10,
+        painter.drawLine((move.y() + 1) * 40 + 20,
+                         (move.x() + 1) * 40,
+                         (move.y() + 1) * 40 + 10,
                          (move.x() + 1) * 40);
-        painter.drawLine((move.y() + 1) * 40 - 20, (move.x() + 1) * 40 + 40, (move.y() + 1) * 40 - 10,
+        painter.drawLine((move.y() + 1) * 40 - 20,
+                         (move.x() + 1) * 40 + 40,
+                         (move.y() + 1) * 40 - 10,
                          (move.x() + 1) * 40 + 40);
-        painter.drawLine((move.y() + 1) * 40 + 20, (move.x() + 1) * 40 + 40, (move.y() + 1) * 40 + 10,
+        painter.drawLine((move.y() + 1) * 40 + 20,
+                         (move.x() + 1) * 40 + 40,
+                         (move.y() + 1) * 40 + 10,
                          (move.x() + 1) * 40 + 40);
-        painter.drawLine((move.y() + 1) * 40 - 20, (move.x() + 1) * 40, (move.y() + 1) * 40 - 20,
+        painter.drawLine((move.y() + 1) * 40 - 20,
+                         (move.x() + 1) * 40,
+                         (move.y() + 1) * 40 - 20,
                          (move.x() + 1) * 40 + 10);
-        painter.drawLine((move.y() + 1) * 40 + 20, (move.x() + 1) * 40, (move.y() + 1) * 40 + 20,
+        painter.drawLine((move.y() + 1) * 40 + 20,
+                         (move.x() + 1) * 40,
+                         (move.y() + 1) * 40 + 20,
                          (move.x() + 1) * 40 + 10);
-        painter.drawLine((move.y() + 1) * 40 - 20, (move.x() + 1) * 40 + 40, (move.y() + 1) * 40 - 20,
+        painter.drawLine((move.y() + 1) * 40 - 20,
+                         (move.x() + 1) * 40 + 40,
+                         (move.y() + 1) * 40 - 20,
                          (move.x() + 1) * 40 + 30);
-        painter.drawLine((move.y() + 1) * 40 + 20, (move.x() + 1) * 40 + 40, (move.y() + 1) * 40 + 20,
+        painter.drawLine((move.y() + 1) * 40 + 20,
+                         (move.x() + 1) * 40 + 40,
+                         (move.y() + 1) * 40 + 20,
                          (move.x() + 1) * 40 + 30);
     }
 
     if (last != QPoint(-1, -1)) {
-        painter.drawLine((last.y() + 1) * 40 - 1, (last.x() + 1) * 40 + 20, (last.y() + 1) * 40 - 6,
+        painter.drawLine((last.y() + 1) * 40 - 1,
+                         (last.x() + 1) * 40 + 20,
+                         (last.y() + 1) * 40 - 6,
                          (last.x() + 1) * 40 + 20);
-        painter.drawLine((last.y() + 1) * 40 + 1, (last.x() + 1) * 40 + 20, (last.y() + 1) * 40 + 6,
+        painter.drawLine((last.y() + 1) * 40 + 1,
+                         (last.x() + 1) * 40 + 20,
+                         (last.y() + 1) * 40 + 6,
                          (last.x() + 1) * 40 + 20);
-        painter.drawLine((last.y() + 1) * 40, (last.x() + 1) * 40 + 19, (last.y() + 1) * 40,
+        painter.drawLine((last.y() + 1) * 40,
+                         (last.x() + 1) * 40 + 19,
+                         (last.y() + 1) * 40,
                          (last.x() + 1) * 40 + 14);
-        painter.drawLine((last.y() + 1) * 40, (last.x() + 1) * 40 + 21, (last.y() + 1) * 40,
+        painter.drawLine((last.y() + 1) * 40,
+                         (last.x() + 1) * 40 + 21,
+                         (last.y() + 1) * 40,
                          (last.x() + 1) * 40 + 26);
     }
 }
@@ -228,7 +253,7 @@ void GameWindow::setGame(const Stone &stone, const bool &type)
     gameType = type;
 
     if (playerStone == White && gameType == PVC) {
-        engine.move(engine.bestMove(static_cast<const Stone>(-playerStone)), Black);
+        engine.move(engine.bestMove(Black), Black);
 
         last = engine.lastMove();
     }
@@ -243,18 +268,26 @@ void GameWindow::on_async_finished()
 
     const auto stone = static_cast<const Stone>(-playerStone);
 
-    if (const auto gameState = engine.gameStatus(engine.lastMove(), stone); gameState == Draw
-            || gameState == Win) {
+    if (const auto gameState = engine.gameStatus(engine.lastMove(), stone);
+        gameState == Draw || gameState == Win) {
         gameOver = true;
 
         if (gameState == Draw) {
-            QMessageBox::information(nullptr, "Result", "Draw!", QMessageBox::Ok, QMessageBox::NoButton);
+            QMessageBox::information(nullptr,
+                                     "Result",
+                                     "Draw!",
+                                     QMessageBox::Ok,
+                                     QMessageBox::NoButton);
         } else {
             QString winner = stone == Black ? "Black" : "White";
 
             winner.append(" win!");
 
-            QMessageBox::information(nullptr, "Result", winner, QMessageBox::Ok, QMessageBox::NoButton);
+            QMessageBox::information(nullptr,
+                                     "Result",
+                                     winner,
+                                     QMessageBox::Ok,
+                                     QMessageBox::NoButton);
         }
     }
 }
@@ -271,8 +304,12 @@ void GameWindow::on_newGame_released()
     playerStone = Black;
 
     if (gameType == PVC) {
-        if (QMessageBox::question(nullptr, "Stone", "Black? ", QMessageBox::Yes | QMessageBox::No,
-                                  QMessageBox::NoButton) == QMessageBox::No) {
+        if (QMessageBox::question(nullptr,
+                                  "Stone",
+                                  "Black? ",
+                                  QMessageBox::Yes | QMessageBox::No,
+                                  QMessageBox::NoButton)
+            == QMessageBox::No) {
             playerStone = White;
         }
     }

@@ -26,6 +26,7 @@ private:
     int step;
     bool gameOver;
     bool gameType;
+
 public:
     GameWindow(QWidget *parent = nullptr);
     void setGame(const Stone &stone, const bool &type);

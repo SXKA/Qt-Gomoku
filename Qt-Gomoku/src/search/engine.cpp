@@ -1,8 +1,7 @@
 #include "engine.h"
 
-#include <QtGlobal>
-#include <QMessageBox>
 #include <QTime>
+#include <QtGlobal>
 
 #include <algorithm>
 #include <cmath>
@@ -13,24 +12,33 @@ namespace {
 std::array<int, 226> moveCounts;
 }
 
-inline bool operator< (const QPoint &lhs, const QPoint &rhs)
+inline bool operator<(const QPoint &lhs, const QPoint &rhs)
 {
-    return lhs.y() == rhs.y() ? lhs.x() < rhs.x() : lhs.y() < rhs.y();
+    const auto &[lhsX, lhsY] = lhs;
+    const auto &[rhsX, rhsY] = rhs;
+    const auto lhsD = qAbs(lhsX - 7) + qAbs(lhsY - 7);
+    const auto rhsD = qAbs(rhsX - 7) + qAbs(rhsY - 7);
+
+    if (lhsD != rhsD) {
+        return lhsD < rhsD;
+    }
+
+    return lhsY == rhsY ? lhsX < rhsX : lhsY < rhsY;
 }
 
 Engine::Engine()
     : evaluator(&blackShapes, &whiteShapes)
     , generator(&evaluator, &board)
     , board({})
-, blackShapes({})
-, whiteShapes({})
-, checkSum(transpositionTable.hash())
-, cutNodeCount(0)
-, hitNodeCount(0)
-, nodeCount(0)
+    , blackShapes({})
+    , whiteShapes({})
+    , cutNodeCount(0)
+    , hitNodeCount(0)
+    , nodeCount(0)
+    , ply(0)
 {
     for (size_t i = 0; i < moveCounts.size(); ++i) {
-        moveCounts[i] = (3 + static_cast<int>(std::pow(i, 1.33))) >> 1;
+        moveCounts[i] = static_cast<int>(std::pow(i, 1.33) + 3) / 2;
     }
 
     std::fill_n(blackShapes.begin(), 30, std::string(15, '0'));
@@ -48,15 +56,14 @@ Engine::Engine()
     }
 }
 
-bool Engine::isLegal(const QPoint &point)
+bool Engine::isLegal(const QPoint &move)
 {
-    return point.x() >= 0 && point.x() < 15 && point.y() >= 0 && point.y() < 15;
+    return move.x() >= 0 && move.x() < 15 && move.y() >= 0 && move.y() < 15;
 }
 
 void Engine::move(const QPoint &point, const Stone &stone)
 {
-    const auto x = point.x();
-    const auto y = point.y();
+    const auto &[x, y] = point;
     auto &firstShapes = stone == Black ? blackShapes : whiteShapes;
     auto &secondShapes = stone == Black ? whiteShapes : blackShapes;
 
@@ -77,7 +84,8 @@ void Engine::move(const QPoint &point, const Stone &stone)
 
     evaluator.update(point);
     generator.move(point);
-    transpositionTable.transpose(point, stone);
+    pvsTT.transpose(point, stone);
+    vcfTT.transpose(point, stone);
     moveHistory.push(point);
     board[x][y] = stone;
 }
@@ -85,12 +93,12 @@ void Engine::move(const QPoint &point, const Stone &stone)
 void Engine::undo(const int &step)
 {
     for (int i = 0; i < step; ++i) {
-        const auto point = moveHistory.top();
-        const auto x = point.x();
-        const auto y = point.y();
+        const auto move = moveHistory.top();
+        const auto &[x, y] = move;
 
-        generator.undo(point);
-        transpositionTable.transpose(point, checkStone(point));
+        generator.undo(move);
+        pvsTT.transpose(move, checkStone(move));
+        vcfTT.transpose(move, checkStone(move));
         moveHistory.pop();
         board[x][y] = Empty;
         blackShapes[y][x] = '0';
@@ -114,10 +122,12 @@ void Engine::undo(const int &step)
 
 Stone Engine::checkStone(const QPoint &point) const
 {
-    return board[point.x()][point.y()];
+    const auto &[x, y] = point;
+
+    return board[x][y];
 }
 
-Status Engine::gameStatus(const QPoint &point, const Stone &stone) const
+Status Engine::gameStatus(const QPoint &move, const Stone &stone) const
 {
     constexpr std::array<int, 2> d = {-1, 1};
     constexpr std::array<int, 4> dx = {1, 0, 1, 1};
@@ -127,12 +137,12 @@ Status Engine::gameStatus(const QPoint &point, const Stone &stone) const
         int count = 1;
 
         for (size_t j = 0; j < 2; ++j) {
-            auto neighborhood = point + QPoint(d[j] * dx[i], d[j] * dy[i]);
+            auto neighborhood = move + d[j] * QPoint{dx[i], dy[i]};
 
             while (isLegal(neighborhood) && checkStone(neighborhood) == stone) {
                 ++count;
 
-                neighborhood += QPoint(d[j] * dx[i], d[j] * dy[i]);
+                neighborhood += d[j] * QPoint{dx[i], dy[i]};
             }
         }
 
@@ -142,9 +152,7 @@ Status Engine::gameStatus(const QPoint &point, const Stone &stone) const
     }
 
     for (const auto &row : board) {
-        if (std::any_of(row.cbegin(), row.cend(), [](const auto & x) {
-        return x == Empty;
-    })) {
+        if (std::any_of(row.cbegin(), row.cend(), [](const auto &x) { return x == Empty; })) {
             return Undecided;
         }
     }
@@ -154,27 +162,31 @@ Status Engine::gameStatus(const QPoint &point, const Stone &stone) const
 
 QPoint Engine::bestMove(const Stone &stone)
 {
-    if (const auto last = lastMove(); moveHistory.empty() || (moveHistory.size() == 1
-                                                              && last != QPoint(7, 7)
-                                                              && checkStone(last) != stone)) {
+    if (const auto last = lastMove();
+        moveHistory.empty()
+        || (moveHistory.size() == 1 && last != QPoint(7, 7) && checkStone(last) != stone)) {
         return {7, 7};
     }
 
-    transpositionTable.aging();
-    checkSum = transpositionTable.hash();
+    pvsTT.aging();
+    vcfTT.aging();
+    ply = static_cast<const int>(moveHistory.size());
 
     const QTime time = QTime::currentTime();
-    const auto score = pvs(stone, Min, Max, LIMIT_DEPTH, PVNode);
+    const auto score = pvs<PVNode>(stone, Min, Max, LIMIT_DEPTH);
     const auto elapsedTime = time.msecsTo(QTime::currentTime());
 
-    qInfo() << bestPoint;
+    qInfo() << "Best move: " << bestPoint;
     qInfo() << "Score: " << score;
     qInfo() << "Node numbers: " << nodeCount;
-    qInfo() << "Cut node numbers: " << cutNodeCount << " (" << 100 * cutNodeCount / nodeCount << "%)";
-    qInfo() << "Hit node numbers: " << hitNodeCount << " (" << 100 * hitNodeCount / nodeCount << "%)";
+    qInfo() << "Cut node numbers: " << cutNodeCount << " (" << 100 * cutNodeCount / nodeCount
+            << "%)";
+    qInfo() << "Hit node numbers: " << hitNodeCount << " (" << 100 * hitNodeCount / nodeCount
+            << "%)";
     qInfo() << "Elapsed time: " << 0.001 * elapsedTime << 's';
-    qInfo() << "Node per second: " << nodeCount / (0.001 * elapsedTime);
-    qInfo() << "Time per node: " << 1000.0 * elapsedTime / nodeCount << "us";
+    qInfo() << "Node per second: " << static_cast<const double>(nodeCount) / (0.001 * elapsedTime);
+    qInfo() << "Time per node: " << 1000.0 * elapsedTime / static_cast<const double>(nodeCount)
+            << "us";
 
     cutNodeCount = 0;
     hitNodeCount = 0;
@@ -188,37 +200,42 @@ QPoint Engine::lastMove() const
     return moveHistory.empty() ? QPoint(-1, -1) : moveHistory.top();
 }
 
-bool Engine::inThreat(const Stone &stone, QHash<QPoint, QPair<int, int>> &moves)
+bool Engine::inMated(const Stone &stone, QHash<QPoint, QPair<int, int>> &moves)
 {
     auto blackMaxMove = moves.cbegin();
     auto whiteMaxMove = moves.cbegin();
 
     for (auto it = moves.cbegin(); it != moves.cend(); ++it) {
-        if (it.value().first > blackMaxMove.value().first) {
+        const auto [blackScore, whiteScore] = it.value();
+        const auto &blackMaxScore = blackMaxMove.value().first;
+        const auto &whiteMaxScore = whiteMaxMove.value().second;
+
+        if (blackScore > blackMaxScore) {
             blackMaxMove = it;
         }
 
-        if (it.value().second > whiteMaxMove.value().second) {
+        if (whiteScore > whiteMaxScore) {
             whiteMaxMove = it;
         }
     }
 
-    const auto &secondMaxMove = stone == Black ? whiteMaxMove : blackMaxMove;
-    const auto &firstMaxScore = stone == Black ? blackMaxMove.value().first :
-                                whiteMaxMove.value().second;
-    const auto &secondMaxScore = stone == Black ? whiteMaxMove.value().second :
-                                 blackMaxMove.value().first;
+    const auto &blackMaxScore = blackMaxMove.value().first;
+    const auto &whiteMaxScore = whiteMaxMove.value().second;
+    const auto &firstMaxScore = stone == Black ? blackMaxScore : whiteMaxScore;
 
     if (firstMaxScore >= Five) {
         return false;
     }
 
+    const auto &secondMaxMove = stone == Black ? whiteMaxMove : blackMaxMove;
+    const auto &secondMaxScore = stone == Black ? whiteMaxScore : blackMaxScore;
+
     if (secondMaxScore >= Five) {
-        const auto point = secondMaxMove.key();
+        const auto move = secondMaxMove.key();
         const auto scores = secondMaxMove.value();
 
         moves.clear();
-        moves.insert(point, scores);
+        moves.insert(move, scores);
 
         return true;
     }
@@ -226,122 +243,186 @@ bool Engine::inThreat(const Stone &stone, QHash<QPoint, QPair<int, int>> &moves)
     return false;
 }
 
-int Engine::pvs(const Stone &stone, int alpha, const int &beta, const int &depth,
-                const NodeType &nodeType, const bool &nullOk)
+template<NodeType NT>
+int Engine::pvs(const Stone &stone, int alpha, const int &beta, const int &depth, const bool &nullOk)
 {
     ++nodeCount;
 
-    QPoint goodMove{-1, -1};
-
-    if (nodeType != PVNode) {
-        if (const auto probeScore = transpositionTable.probe(transpositionTable.hash(), alpha, beta, depth,
-                                                             goodMove); probeScore != MISS) {
-            ++hitNodeCount;
-
-            return probeScore >= beta ? beta : probeScore;
-        }
-    }
-
+    const int distance = static_cast<const int>(moveHistory.size()) - ply;
     const auto firstScore = evaluator.evaluate(stone);
     const auto secondScore = evaluator.evaluate(static_cast<const Stone>(-stone));
 
     if (firstScore >= Five) {
-        return Max - (LIMIT_DEPTH - depth) - 1;
+        return Max;
     }
 
     if (secondScore >= Five) {
-        return Min + (LIMIT_DEPTH - depth) + 1;
+        return Min;
     }
 
     if (generator.empty()) {
-        return firstScore - secondScore;
+        return 0;
     }
 
+    if (depth <= 0) {
+        return vcfSearch<NT>(stone, alpha, beta, VCF_DEPTH);
+    }
+
+    QPoint heuristicMove{-1, -1};
     auto moves = generator.generate();
-    const bool extend = inThreat(stone, moves);
+    const auto extension = inMated(stone, moves);
+    auto probeScore = pvsTT.probe(pvsTT.hash(), alpha, beta, depth, stone, heuristicMove);
 
-    if (depth <= 0 && !extend) {
-        return firstScore - secondScore;
+    if (!distance && moves.size() == 1) {
+        bestPoint = moves.cbegin().key();
+
+        return vcfSearch<PVNode>(stone, alpha, beta, VCF_DEPTH);
     }
 
-    if (nodeType != PVNode && !extend && nullOk) {
-        R = depth >= 6 ? 3 : 2;
+    if (NT != PVNode) {
+        if (probeScore != MISS) {
+            ++hitNodeCount;
 
-        if (const auto &score = -pvs(static_cast<const Stone>(-stone), -beta, -beta + 1, depth - R - 1,
-                                     nodeType, false); score >= beta) {
+            return probeScore;
+        }
+
+        const auto eval = firstScore - secondScore;
+
+        if (depth < 3 && eval + Two * depth < alpha) {
+            return vcfSearch<NT>(stone, alpha, alpha + 1, VCF_DEPTH);
+        }
+
+        if (eval - Two * depth >= beta) {
             ++cutNodeCount;
 
             return beta;
         }
+
+        if (!extension && nullOk) {
+            R = depth >= 6 ? 3 : 2;
+
+            auto score = -pvs<NT>(static_cast<const Stone>(-stone),
+                                  -beta,
+                                  -beta + 1,
+                                  depth - R - 1,
+                                  false);
+
+            if (score >= Max - 225) {
+                --score;
+            } else if (score <= Min + 225) {
+                ++score;
+            }
+
+            if (score >= beta) {
+                ++cutNodeCount;
+
+                return beta;
+            }
+        }
     }
 
-    bool heuristic = false;
     QList<QPair<int, QPoint>> candidates;
-
-    if (!extend) {
-        heuristic = moves.remove(goodMove);
-    }
-
     auto blackMaxMove = moves.cbegin();
     auto whiteMaxMove = moves.cbegin();
 
-    for (auto it = moves.cbegin(); it != moves.cend(); ++it) {
-        const auto &[blackScore, whiteScore] = it.value();
+    candidates.reserve(moves.size());
 
-        if (blackScore > blackMaxMove.value().first) {
+    for (auto it = moves.cbegin(); it != moves.cend(); ++it) {
+        const auto [blackScore, whiteScore] = it.value();
+        const auto &blackMaxScore = blackMaxMove.value().first;
+        const auto &whiteMaxScore = whiteMaxMove.value().second;
+
+        if (blackScore > blackMaxScore) {
             blackMaxMove = it;
         }
 
-        if (whiteScore > whiteMaxMove.value().second) {
+        if (whiteScore > whiteMaxScore) {
             whiteMaxMove = it;
         }
 
         candidates.emplace_back(blackScore + whiteScore, it.key());
     }
 
-    if (!extend && !moves.empty()) {
-        const auto &firstMaxMove = stone == Black ? blackMaxMove : whiteMaxMove;
-        const auto &firstMaxScore = stone == Black ? blackMaxMove.value().first :
-                                    whiteMaxMove.value().second;
-        const auto &secondMaxScore = stone == Black ? whiteMaxMove.value().second :
-                                     blackMaxMove.value().first;
+    bool mated = false;
 
-        if (firstMaxScore >= OpenFours) {
+    if (!extension) {
+        const auto &firstMaxMove = stone == Black ? blackMaxMove : whiteMaxMove;
+        const auto &secondMaxMove = stone == Black ? whiteMaxMove : blackMaxMove;
+        const auto &blackMaxScore = blackMaxMove.value().first;
+        const auto &whiteMaxScore = whiteMaxMove.value().second;
+        const auto &firstMaxScore = stone == Black ? blackMaxScore : whiteMaxScore;
+        const auto &secondMaxScore = stone == Black ? whiteMaxScore : blackMaxScore;
+
+        if (firstMaxScore >= OpenFour) {
             candidates.clear();
             candidates.emplace_back(firstMaxMove.value().first + firstMaxMove.value().second,
                                     firstMaxMove.key());
-        } else if (secondMaxScore >= OpenFours) {
+        } else if (secondMaxScore >= OpenFour) {
+            mated = true;
+
+            int d;
+
+            for (d = 0; d < 4; ++d) {
+                const auto [blackScore, whiteScore] = evaluator.evaluateMove(secondMaxMove.key(), d);
+
+                if (const auto &secondMoveScore = stone == Black ? whiteScore : blackScore;
+                    secondMoveScore >= OpenFour) {
+                    break;
+                }
+            }
+
+            const auto line = Evaluation::Evaluator::lineOffsetPair(secondMaxMove.key(), d).first;
             auto it = candidates.cbegin();
 
             while (it != candidates.cend()) {
-                const auto &firstMoveScore = stone == Black ? moves[it->second].first : moves[it->second].second;
-                const auto &secondMoveScore = stone == Black ? moves[it->second].second : moves[it->second].first;
+                const auto &[blackScore, whiteScore] = moves[it->second];
+                const auto &firstMoveScore = stone == Black ? blackScore : whiteScore;
+                const auto [x, y] = secondMaxMove.key() - it->second;
+                const auto offset = qAbs(qMax(x, y));
 
-                if (firstMoveScore < Four && secondMoveScore < OpenFours) {
-                    it = candidates.erase(it);
-                } else {
+                if (offset <= 5 && Evaluation::Evaluator::lineOffsetPair(it->second, d).first == line
+                    || firstMoveScore >= Four && evaluator.isFourMove(it->second, stone)) {
                     ++it;
+                } else {
+                    it = candidates.erase(it);
                 }
             }
+        }
+
+        if (const auto it = std::find_if(candidates.cbegin(),
+                                         candidates.cend(),
+                                         [heuristicMove](const auto &candidate) {
+                                             return candidate.second == heuristicMove;
+                                         });
+            it != candidates.cend()) {
+            candidates.erase(it);
+            candidates.emplaceFront(INT_MAX, heuristicMove);
         }
     }
 
     std::sort(candidates.begin(), candidates.end(), std::greater());
 
-    if (heuristic) {
-        candidates.emplaceFront(INT_MAX, goodMove);
-    }
-
-    if (nodeType == CutNode && depth > MC_R && candidates.size() >= MC_M) {
+    if (NT == CutNode && depth > MC_R && candidates.size() >= MC_M) {
         int c = 0;
+        int m = 0;
+        auto it = candidates.cbegin();
+        QList<QPair<int, QPoint>> cutoffs;
 
-        for (int m = 0; m < MC_M; ++m) {
-            move(candidates[m].second, stone);
+        while (m < MC_M) {
+            move(it->second, stone);
 
-            const auto score = -pvs(static_cast<const Stone>(-stone), -beta, -alpha, depth - MC_R - 1,
-                                    static_cast<const NodeType>(-nodeType));
+            auto score = -pvs<static_cast<const NodeType>(-NT)>(static_cast<const Stone>(-stone),
+                                                                -beta,
+                                                                -alpha,
+                                                                depth - MC_R - 1);
 
             undo(1);
+
+            if (score >= Max - 225) {
+                --score;
+            } else if (score <= Min + 225) {
+                ++score;
+            }
 
             if (score >= beta) {
                 if (score >= Five) {
@@ -355,27 +436,48 @@ int Engine::pvs(const Stone &stone, int alpha, const int &beta, const int &depth
 
                     return beta;
                 }
+
+                cutoffs.push_back(*it);
+
+                it = candidates.erase(it);
+            } else {
+                ++it;
             }
+
+            ++m;
+        }
+
+        if (!cutoffs.empty()) {
+            candidates = cutoffs + candidates;
         }
     }
 
-    if (!extend && candidates.size() > moveCounts[depth]) {
+    if (!mated && candidates.size() > moveCounts[depth]) {
         candidates.resize(moveCounts[depth]);
     }
 
     move(candidates.front().second, stone);
 
-    auto bestScore = -pvs(static_cast<const Stone>(-stone), -beta, -alpha, depth + extend - 1,
-                          static_cast<const NodeType>(-nodeType));
+    auto bestScore = -pvs<static_cast<const NodeType>(-NT)>(static_cast<const Stone>(-stone),
+                                                            -beta,
+                                                            -alpha,
+                                                            depth + extension - 1);
 
     undo(1);
 
-    if (bestScore >= beta) {
-        if (transpositionTable.hash() != checkSum) {
-            transpositionTable.insert(transpositionTable.hash(), HashEntry::LowerBound,
-                                      candidates.front().second, depth, bestScore);
-        }
+    if (bestScore >= Max - 225) {
+        --bestScore;
+    } else if (bestScore <= Min + 225) {
+        ++bestScore;
+    }
 
+    if (bestScore >= beta) {
+        pvsTT.insert(pvsTT.hash(),
+                     HashEntry::LowerBound,
+                     candidates.front().second,
+                     depth,
+                     bestScore,
+                     stone);
         ++cutNodeCount;
 
         return bestScore;
@@ -389,44 +491,57 @@ int Engine::pvs(const Stone &stone, int alpha, const int &beta, const int &depth
         pvNode = candidates.front().second;
         valueType = HashEntry::Exact;
 
-        if (transpositionTable.hash() == checkSum) {
+        if (!distance) {
             bestPoint = candidates.front().second;
         }
     }
 
     candidates.pop_front();
 
-    for (const auto&[_, candidate] : candidates) {
+    for (const auto [_, candidate] : candidates) {
         move(candidate, stone);
 
-        auto candidateScore = -pvs(static_cast<const Stone>(-stone), -alpha - 1, -alpha, depth + extend - 1,
-                                   nodeType == CutNode ? AllNode : CutNode);
+        auto candidateScore = -pvs < NT == CutNode ? AllNode
+                                                   : CutNode > (static_cast<const Stone>(-stone),
+                                                                -alpha - 1,
+                                                                -alpha,
+                                                                depth + extension - 1);
 
         undo(1);
 
-        if (candidateScore > alpha && candidateScore < beta || candidateScore == beta && beta == alpha + 1
-                && nodeType == PVNode) {
+        if (candidateScore >= Max - 225) {
+            --candidateScore;
+        } else if (candidateScore <= Min + 225) {
+            ++candidateScore;
+        }
+
+        if (candidateScore > alpha && candidateScore < beta
+            || (candidateScore == beta && beta == alpha + 1 && NT == PVNode)) {
             if (candidateScore == alpha + 1) {
                 candidateScore = alpha;
             }
 
             move(candidate, stone);
 
-            candidateScore = -pvs(static_cast<const Stone>(-stone), -beta, -candidateScore, depth + extend - 1,
-                                  nodeType);
+            candidateScore = -pvs<NT>(static_cast<const Stone>(-stone),
+                                      -beta,
+                                      -candidateScore,
+                                      depth + extension - 1);
 
             undo(1);
+
+            if (candidateScore >= Max - 225) {
+                --candidateScore;
+            } else if (candidateScore <= Min + 225) {
+                ++candidateScore;
+            }
         }
 
         if (candidateScore > bestScore) {
             bestScore = candidateScore;
 
             if (bestScore >= beta) {
-                if (transpositionTable.hash() != checkSum) {
-                    transpositionTable.insert(transpositionTable.hash(), HashEntry::LowerBound, candidate, depth,
-                                              bestScore);
-                }
-
+                pvsTT.insert(pvsTT.hash(), HashEntry::LowerBound, candidate, depth, bestScore, stone);
                 ++cutNodeCount;
 
                 return bestScore;
@@ -437,20 +552,213 @@ int Engine::pvs(const Stone &stone, int alpha, const int &beta, const int &depth
                 pvNode = candidate;
                 valueType = HashEntry::Exact;
 
-                if (transpositionTable.hash() == checkSum) {
+                if (!distance) {
                     bestPoint = candidate;
                 }
             }
         }
     }
 
-    if (nodeType == CutNode && bestScore == alpha) {
+    if (NT == CutNode && bestScore == alpha) {
         return bestScore;
     }
 
-    if (transpositionTable.hash() != checkSum) {
-        transpositionTable.insert(transpositionTable.hash(), valueType, pvNode, depth, bestScore);
+    pvsTT.insert(pvsTT.hash(), valueType, pvNode, depth, bestScore, stone);
+
+    return bestScore;
+}
+
+template<NodeType NT>
+int Engine::vcfSearch(const Stone &stone, int alpha, const int &beta, const int &depth)
+{
+    ++nodeCount;
+
+    const auto firstScore = evaluator.evaluate(stone);
+    const auto secondScore = evaluator.evaluate(static_cast<const Stone>(-stone));
+
+    if (firstScore >= Five) {
+        return Max;
     }
+
+    if (secondScore >= Five) {
+        return Min;
+    }
+
+    if (generator.empty()) {
+        return 0;
+    }
+
+    const auto eval = firstScore - secondScore;
+
+    if (!depth) {
+        return eval;
+    }
+
+    QPoint heuristicMove{-1, -1};
+    const auto probeScore = vcfTT.probe(vcfTT.hash(), alpha, beta, depth, stone, heuristicMove);
+
+    if (NT != PVNode && probeScore != MISS) {
+        ++hitNodeCount;
+
+        return probeScore;
+    }
+
+    if (eval >= beta) {
+        vcfTT.insert(vcfTT.hash(), HashEntry::LowerBound, {-1, -1}, depth, eval, stone);
+        ++cutNodeCount;
+
+        return eval;
+    }
+
+    auto moves = generator.generate();
+    const auto extension = inMated(stone, moves);
+    QList<QPair<int, QPoint>> candidates;
+
+    candidates.reserve(moves.size());
+
+    if (extension) {
+        const auto it = moves.cbegin();
+        const auto [blackScore, whiteScore] = it.value();
+
+        candidates.emplace_back(blackScore + whiteScore, it.key());
+    } else {
+        bool mate = false;
+
+        for (auto it = moves.cbegin(); it != moves.cend(); ++it) {
+            const auto [blackScore, whiteScore] = it.value();
+            const auto firstMoveScore = stone == Black ? blackScore : whiteScore;
+
+            if (firstMoveScore >= Five) {
+                candidates.clear();
+                candidates.emplace_back(blackScore + whiteScore, it.key());
+
+                break;
+            }
+
+            if (firstMoveScore >= OpenFour) {
+                mate = true;
+
+                candidates.clear();
+                candidates.emplace_back(blackScore + whiteScore, it.key());
+            } else if (!mate && firstMoveScore >= Four && evaluator.isFourMove(it.key(), stone)) {
+                candidates.emplace_back(blackScore + whiteScore, it.key());
+            }
+        }
+
+        if (const auto it = std::find_if(candidates.cbegin(),
+                                         candidates.cend(),
+                                         [heuristicMove](const auto &candidate) {
+                                             return candidate.second == heuristicMove;
+                                         });
+            it != candidates.cend()) {
+            candidates.erase(it);
+            candidates.emplaceFront(INT_MAX, heuristicMove);
+        }
+
+        if (candidates.empty()) {
+            return eval;
+        }
+    }
+
+    std::sort(candidates.begin(), candidates.end(), std::greater());
+
+    move(candidates.front().second, stone);
+
+    auto bestScore = -vcfSearch<static_cast<const NodeType>(-NT)>(static_cast<const Stone>(-stone),
+                                                                  -beta,
+                                                                  -alpha,
+                                                                  depth - 1);
+
+    undo(1);
+
+    if (bestScore >= Max - 225) {
+        --bestScore;
+    } else if (bestScore <= Min + 225) {
+        ++bestScore;
+    }
+
+    QPoint pvNode{-1, -1};
+    auto valueType = HashEntry::UpperBound;
+
+    if (bestScore >= beta) {
+        vcfTT.insert(vcfTT.hash(),
+                     HashEntry::LowerBound,
+                     candidates.front().second,
+                     depth,
+                     bestScore,
+                     stone);
+        ++cutNodeCount;
+
+        return bestScore;
+    }
+
+    if (bestScore > alpha) {
+        alpha = bestScore;
+        pvNode = candidates.front().second;
+        valueType = HashEntry::Exact;
+    }
+
+    candidates.pop_front();
+
+    for (const auto [_, candidate] : candidates) {
+        move(candidate, stone);
+
+        auto candidateScore = -vcfSearch < NT == CutNode
+                                  ? AllNode
+                                  : CutNode > (static_cast<const Stone>(-stone),
+                                               -alpha - 1,
+                                               -alpha,
+                                               depth - 1);
+
+        undo(1);
+
+        if (candidateScore >= Max - 225) {
+            --candidateScore;
+        } else if (candidateScore <= Min + 225) {
+            ++candidateScore;
+        }
+
+        if (candidateScore > alpha && candidateScore < beta
+            || (candidateScore == beta && beta == alpha + 1 && NT == PVNode)) {
+            move(candidate, stone);
+
+            candidateScore = -vcfSearch<NT>(static_cast<const Stone>(-stone),
+                                            -beta,
+                                            -candidateScore,
+                                            depth - 1);
+
+            undo(1);
+
+            if (candidateScore >= Max - 225) {
+                --candidateScore;
+            } else if (candidateScore <= Min + 225) {
+                ++candidateScore;
+            }
+        }
+
+        if (candidateScore > bestScore) {
+            bestScore = candidateScore;
+
+            if (bestScore >= beta) {
+                vcfTT.insert(vcfTT.hash(), HashEntry::LowerBound, candidate, depth, bestScore, stone);
+                ++cutNodeCount;
+
+                return bestScore;
+            }
+
+            if (bestScore > alpha) {
+                alpha = bestScore;
+                pvNode = candidate;
+                valueType = HashEntry::Exact;
+            }
+        }
+    }
+
+    if (NT == CutNode && bestScore == alpha) {
+        return bestScore;
+    }
+
+    vcfTT.insert(vcfTT.hash(), valueType, pvNode, depth, bestScore, stone);
 
     return bestScore;
 }
