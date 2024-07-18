@@ -5,6 +5,8 @@
 無禁手規則
 
 詳細介紹：https://github.com/SXKA/Qt-Gomoku/wiki
+
+可執行檔：https://github.com/SXKA/Qt-Gomoku/releases
 # 使用方法
 Include src/search/engine.h to use search engine.
 
