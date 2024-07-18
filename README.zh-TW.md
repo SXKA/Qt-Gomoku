@@ -18,7 +18,7 @@ Search::LIMIT_DEPTH = depth; // Extensions will not be limited.
 Search::MC_C = mc_c; // Multi-Cut number of cutoffs.
 Search::MC_M = mc_m; // Multi-Cut number of moves.
 Search::MC_R = mc_r; // Multi-Cut depth reduction.
-Search::R = r;       // Null move pruning depth reduction.
+Search::VCF_DEPTH = vcf_depth;       // VCF depth.
 
 // 黑方落子
 engine.move({7, 7}, Black);
@@ -60,9 +60,9 @@ engine.undo(1);
 - https://github.com/kimlongli/FiveChess (評估)
 - https://github.com/Kenny-ting/Chess-Game-2020 (介面)
 ## 特色
-- 使用非同步進行搜尋，避免主執行緒blocking
 - 搜尋深度達到 12 ply
 - 主要變體搜尋 (PVS)
+- 衝四勝(VCF)搜尋
 - 同形表
 - 空著裁剪
 - Multi-Cut
