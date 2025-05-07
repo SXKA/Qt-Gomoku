@@ -62,7 +62,7 @@ engine.undo(1);
 - https://github.com/kimlongli/FiveChess (Evaluation)
 - https://github.com/Kenny-ting/Chess-Game-2020 (UI)
 ## Features
-- Searching depth reaches 12 ply.
+- Searching depth reaches 12 ply
 - Principal Variation Search (PVS)
 - Victory of Continuous Four (VCF) search
 - Transposition table
