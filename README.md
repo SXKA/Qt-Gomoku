@@ -1,12 +1,12 @@
-# Qt-Gomoku
+# qt-gomoku
 [![EN](https://img.shields.io/badge/lang-EN-red.svg)](https://github.com/SXKA/Qt-Gomoku/blob/master/README.md)
 [![ZH](https://img.shields.io/badge/lang-ZH--HANT--TW-green.svg)](https://github.com/SXKA/Qt-Gomoku/blob/master/README.zh-TW.md)
 
 Free-style Gomoku rule.
 
-Detail: https://github.com/SXKA/Qt-Gomoku/wiki (Traditional Chinese)
+Detail: https://github.com/SXKA/qt-gomoku/wiki (Traditional Chinese)
 
-EXE file: https://github.com/SXKA/Qt-Gomoku/releases 
+EXE file: https://github.com/SXKA/qt-gomoku/releases 
 # Usage
 Include src/search/engine.h to use search engine.
 
