@@ -7,6 +7,14 @@ Free-style Gomoku rule.
 Detail: https://github.com/SXKA/qt-gomoku/wiki (Traditional Chinese)
 
 EXE file: https://github.com/SXKA/qt-gomoku/releases 
+## Features
+- Searching depth reaches 12 ply
+- Principal Variation Search (PVS)
+- Victory of Continuous Four (VCF) search
+- Transposition table
+- Null Move Pruning
+- Multi-Cut
+- Extensions
 # Usage
 Include src/search/engine.h to use search engine.
 
@@ -61,14 +69,6 @@ engine.undo(1);
 - Enhanced Forward Pruning (Search)
 - https://github.com/kimlongli/FiveChess (Evaluation)
 - https://github.com/Kenny-ting/Chess-Game-2020 (UI)
-## Features
-- Searching depth reaches 12 ply
-- Principal Variation Search (PVS)
-- Victory of Continuous Four (VCF) search
-- Transposition table
-- Null Move Pruning
-- Multi-Cut
-- Extensions
 ## Homepage
 ![image](https://github.com/SXKA/Qt-Gomoku/blob/master/Qt-Gomoku/resource/picture/mainwindow.png)
 ## Game UI
