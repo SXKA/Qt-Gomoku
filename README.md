@@ -63,13 +63,11 @@ switch (status) {
 // Undo a move. Please make sure there are moves that can be undo.
 engine.undo(1);
 ```
+## Demo
+https://github.com/user-attachments/assets/6a8d1d7d-4d0b-4289-884f-00d047a0987d
 ## Requirements
 - Qt 6.5.2
 ## References
 - Enhanced Forward Pruning (Search)
 - https://github.com/kimlongli/FiveChess (Evaluation)
 - https://github.com/Kenny-ting/Chess-Game-2020 (UI)
-## Homepage
-![image](https://github.com/SXKA/Qt-Gomoku/blob/master/Qt-Gomoku/resource/picture/mainwindow.png)
-## Game UI
-<div align=center><img src=https://github.com/SXKA/Qt-Gomoku/blob/master/Qt-Gomoku/resource/picture/gamewindow.png></div>
