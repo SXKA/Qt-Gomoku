@@ -7,6 +7,14 @@
 詳細介紹：https://github.com/SXKA/Qt-Gomoku/wiki
 
 可執行檔：https://github.com/SXKA/Qt-Gomoku/releases
+## 特色
+- 搜尋深度達到 12 ply
+- 主要變體搜尋 (PVS)
+- 衝四勝(VCF)搜尋
+- 同形表
+- 空著裁剪
+- Multi-Cut
+- 延伸
 # 使用方法
 Include src/search/engine.h to use search engine.
 
@@ -61,14 +69,6 @@ engine.undo(1);
 - Enhanced Forward Pruning (搜尋)
 - https://github.com/kimlongli/FiveChess (評估)
 - https://github.com/Kenny-ting/Chess-Game-2020 (介面)
-## 特色
-- 搜尋深度達到 12 ply
-- 主要變體搜尋 (PVS)
-- 衝四勝(VCF)搜尋
-- 同形表
-- 空著裁剪
-- Multi-Cut
-- 延伸
 ## 主介面
 ![圖片](https://github.com/SXKA/Qt-Gomoku/blob/master/Qt-Gomoku/resource/picture/mainwindow.png)
 ## 遊戲介面
